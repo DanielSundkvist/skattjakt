@@ -104,14 +104,6 @@ canvas#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:non
       </div>
     </div>
     <div class="field">
-      <span class="label">Hur många ledtrådar?</span>
-      <div class="seg" id="count">
-        <button type="button" data-v="4" aria-pressed="false">4</button>
-        <button type="button" data-v="6" aria-pressed="true">6</button>
-        <button type="button" data-v="8" aria-pressed="false">8</button>
-      </div>
-    </div>
-    <div class="field">
       <span class="label">Hur många barn är med?</span>
       <div class="seg" id="kids">
         <button type="button" data-v="1" aria-pressed="false">1</button>
@@ -121,6 +113,15 @@ canvas#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:non
       </div>
       <div class="row" id="names"></div>
       <span class="hint" id="kidsHint"></span>
+    </div>
+    <div class="field">
+      <span class="label">Hur många ledtrådar?</span>
+      <div class="seg" id="mode">
+        <button type="button" data-v="1" aria-pressed="true">Lika många var</button>
+        <button type="button" data-v="0" aria-pressed="false">Välj antal själv</button>
+      </div>
+      <div class="seg" id="count"></div>
+      <span class="hint" id="countHint"></span>
     </div>
     <div class="field">
       <span class="label">Hemliga lappar</span>
@@ -252,7 +253,7 @@ const ANIMALS=[["🦊","räv"],["🐻","björn"],["🐰","kanin"],["🦉","uggla
 const $=id=>document.getElementById(id);
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const KEY="skattjakt-v1";
-let S={screen:"setup",theme:"vanlig",place:"inne",count:6,notes:true,missions:true,kids:2,sound:true,names:["","","",""],stops:[],i:0,phase:"clue"};
+let S={screen:"setup",theme:"vanlig",place:"inne",count:6,notes:true,missions:true,kids:2,equal:true,per:3,sound:true,names:["","","",""],stops:[],i:0,phase:"clue"};
 const th=()=>T[S.theme]||T.vanlig;
 const syms=()=>S.theme==="jul"?JULSYM:ANIMALS;
 const allPlaces=()=>PLACES[S.place].concat(S.theme==="jul"?JUL[S.place]:[]);
@@ -265,6 +266,25 @@ function seg(id,get,set){
   const paint=()=>el.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v===String(get()))));
   el.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;set(b.dataset.v);paint();paintSetup();save()});
   paint();return paint;
+}
+/* Antal ledtrådar: antingen lika många per barn, eller ett fritt antal. */
+const fair=()=>S.kids>1&&S.equal;
+const perOptions=()=>[1,2,3,4].filter(p=>p*S.kids>=4&&p*S.kids<=12);
+const total=()=>fair()?S.per*S.kids:S.count;
+function paintCount(){
+  $("mode").hidden=S.kids<2;
+  const opts=fair()?perOptions():[4,6,8];
+  if(fair()&&!opts.includes(S.per))S.per=opts[Math.min(1,opts.length-1)];
+  const cur=fair()?S.per:S.count,box=$("count");box.textContent="";
+  opts.forEach(v=>{
+    const b=document.createElement("button");b.type="button";b.textContent=fair()?v+" var":String(v);
+    b.setAttribute("aria-pressed",String(v===cur));
+    b.addEventListener("click",()=>{if(fair())S.per=v;else S.count=v;paintCount();save()});
+    box.append(b);
+  });
+  $("countHint").textContent=fair()
+    ?"Totalt "+total()+" ledtrådar. Barnen turas om, så alla får leda "+S.per+(S.per===1?" gång.":" gånger.")
+    :(S.kids>1?"Barnen turas om, men alla får kanske inte lika många.":"");
 }
 function paintNames(){
   const box=$("names");box.textContent="";
@@ -311,7 +331,7 @@ function paintSetup(){
 }
 function makeHunt(){
   const extra=S.theme==="jul"?shuffle(JUL[S.place]).slice(0,2):[];
-  const pool=shuffle(extra.concat(shuffle(PLACES[S.place])).slice(0,S.count));
+  const pool=shuffle(extra.concat(shuffle(PLACES[S.place])).slice(0,total()));
   const an=shuffle(syms()),ms=shuffle(MISSIONS[S.theme]||MISSIONS.vanlig);
   S.stops=pool.map((p,k)=>({name:p[0],pic:p[1],riddle:p[2],animal:an[k%an.length],
     mission:S.missions&&k%2===0&&k<pool.length-1?ms[(k/2)%ms.length]:null}));
@@ -420,12 +440,12 @@ load();
 seg("theme",()=>S.theme,v=>S.theme=v);
 seg("missions",()=>S.missions?1:0,v=>S.missions=v==="1");
 const p1=seg("place",()=>S.place,v=>S.place=v);
-const p2=seg("count",()=>S.count,v=>S.count=+v);
+seg("mode",()=>S.equal?1:0,v=>{S.equal=v==="1";paintCount()});
 const p3=seg("notes",()=>S.notes?1:0,v=>S.notes=v==="1");
 while(S.names.length<4)S.names.push("");
-seg("kids",()=>S.kids,v=>{S.kids=+v;paintNames()});
+seg("kids",()=>S.kids,v=>{S.kids=+v;paintNames();paintCount()});
 seg("sound",()=>S.sound?1:0,v=>{S.sound=v==="1";if(S.sound)ding()});
-paintNames();
+paintNames();paintCount();
 $("replay").addEventListener("click",hurra);
 $("make").addEventListener("click",()=>{makeHunt();show("prep")});
 $("reshuffle").addEventListener("click",()=>{makeHunt();paintPrep();save()});
