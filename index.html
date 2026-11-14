@@ -72,6 +72,12 @@ select{font:inherit;font-weight:700;padding:12px 14px;border-radius:14px;border:
 .pic{font-size:110px;line-height:1;text-align:center;padding:8px 0}
 .animals{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .animals button{font-size:46px;padding:10px;min-height:84px}
+.animals.places{grid-template-columns:repeat(2,1fr)}
+.animals.places button{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:44px;line-height:1.1}
+.animals.places button small{font-size:15px;font-weight:800}
+.card.final{outline:5px solid var(--sun);outline-offset:-5px}
+.card.final #clueNo{font-family:var(--display);font-size:24px;line-height:1.15;color:var(--coral);text-transform:uppercase}
+.stars{font-size:54px;line-height:1;letter-spacing:6px}
 .animals button.wrong{animation:shake .4s;background:#ffd9d3}
 .msg{font-weight:800;color:var(--coral);min-height:1.45em}
 .badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px}
@@ -192,6 +198,12 @@ canvas#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:non
       <p class="mission" id="missionText"></p>
       <button type="button" id="speakMission">Läs upp uppdraget</button>
       <button class="primary" type="button" id="missionDone">Klart!</button>
+    </div>
+    <div class="card center" id="doneCard" hidden>
+      <div class="stars pop" aria-hidden="true">⭐⭐⭐</div>
+      <h2 id="doneTitle">Rätt plats!</h2>
+      <p class="label" id="doneText"></p>
+      <button class="primary" type="button" id="doneBtn"></button>
     </div>
     <div class="card" id="clueCard">
       <p class="label" id="clueNo"></p>
@@ -426,7 +438,7 @@ function paintSetup(){
   $("themeColor").setAttribute("content",S.theme==="jul"?"#8E1F2F":"#0E4D5C");
   $("notesHint").textContent=S.notes
     ?(S.theme==="jul"?"Du gömmer en lapp med en julbild på varje plats. Barnen trycker på rätt bild för att få nästa ledtråd.":"Du gömmer en lapp med ett djur på varje plats. Barnen trycker på rätt djur för att få nästa ledtråd.")
-    :"Inga förberedelser utom själva skatten. Barnen trycker på en knapp när de hittat platsen.";
+    :"Du gömmer bara skatten. Barnen springer till platsen och trycker på rätt bild i appen. Då får de stjärnor och nästa ledtråd.";
 }
 function makeHunt(){
   const extra=S.theme==="jul"?shuffle(JUL[S.place]).slice(0,2):[];
@@ -476,15 +488,24 @@ function paintHunt(){
   const tr=$("trail");tr.textContent="";
   for(let k=0;k<n;k++){const sp=document.createElement("span");sp.className=k<S.i?"done":k===S.i?"now":"";tr.append(sp)}
   $("turnName").textContent=leader();$("turn").hidden=!leader();$("turn").dataset.kid=String(S.i%Math.max(1,S.kids));
-  const onMission=S.phase==="mission"&&s.mission;
-  $("story").textContent=th().story;$("story").hidden=!(th().story&&S.i===0&&!onMission);
-  $("missionCard").hidden=!onMission;$("clueCard").hidden=!!onMission;$("answerCard").hidden=!!onMission;
+  const onMission=S.phase==="mission"&&s.mission,onDone=S.phase==="done"&&!last;
+  const busy=!!(onMission||onDone);
+  $("story").textContent=th().story;$("story").hidden=!(th().story&&S.i===0&&!busy);
+  $("missionCard").hidden=!onMission;$("doneCard").hidden=!onDone;$("clueCard").hidden=busy;$("answerCard").hidden=busy;
+  if(onDone){
+    const left=n-1-S.i;
+    $("doneTitle").textContent=S.notes?"Rätt lapp!":"Rätt plats!";
+    $("doneText").textContent="Ledtråd "+(S.i+1)+" av "+n+" är klar. "+(left===1?"Nu är det bara skatten kvar!":left+" ledtrådar kvar till skatten.");
+    $("doneBtn").textContent=s.mission?"Till uppdraget":left===1?"Sista ledtråden":"Nästa ledtråd";
+    return;
+  }
   if(onMission){$("missionIcon").textContent=s.mission[0];$("missionText").textContent=S.kids<2?s.mission[1].replace("Ge varandra en","Ge en vuxen en"):s.mission[1];return}
-  $("clueNo").textContent="Ledtråd "+(S.i+1)+" av "+n;
+  $("clueNo").textContent=last?"Sista ledtråden: nu letar ni efter skatten!":"Ledtråd "+(S.i+1)+" av "+n;
+  $("clueCard").classList.toggle("final",last);$("answerCard").classList.toggle("final",last);
   $("riddle").textContent=s.riddle;
   $("pic").textContent=s.pic;$("pic").hidden=true;$("showPic").hidden=false;
   $("msg").textContent="";
-  const grid=$("animals"),found=$("found");grid.textContent="";
+  const grid=$("animals"),found=$("found");grid.textContent="";grid.classList.toggle("places",!last&&!S.notes);
   if(last){
     $("question").textContent=th().last;
     grid.hidden=true;found.hidden=false;found.textContent=th().foundBtn;
@@ -500,18 +521,39 @@ function paintHunt(){
       });
       grid.append(b);
     });
+  }else if(!S.arrived){
+    $("question").textContent="Lista ut vilken plats gåtan menar och spring dit. Tryck på knappen när ni står där.";
+    grid.hidden=true;found.hidden=false;found.textContent="Vi är framme!";
   }else{
-    $("question").textContent="Spring dit och leta!";
-    grid.hidden=true;found.hidden=false;found.textContent="Vi hittade platsen!";
+    $("question").textContent="Vilken plats står ni vid? Tryck på rätt bild.";
+    grid.hidden=false;found.hidden=true;
+    const others=shuffle(allPlaces().filter(p=>p[0]!==s.name)).slice(0,3).map(p=>({name:p[0],pic:p[1]}));
+    shuffle([{name:s.name,pic:s.pic},...others]).forEach(p=>{
+      const b=document.createElement("button"),sm=document.createElement("small");b.type="button";
+      b.append(p.pic);sm.textContent=p.name;b.append(sm);
+      b.addEventListener("click",()=>{
+        if(p.name===s.name){ding();foundStop()}
+        else{b.classList.remove("wrong");void b.offsetWidth;b.classList.add("wrong");$("msg").textContent="Inte "+p.name.toLowerCase()+". Lyssna på gåtan en gång till!"}
+      });
+      grid.append(b);
+    });
   }
 }
+/* En ledtråd är löst: visa stjärnor, sedan uppdrag om platsen har ett, sedan nästa ledtråd. */
 function foundStop(){
-  const s=S.stops[S.i];
-  if(S.i<S.stops.length-1&&s.mission){S.phase="mission";save();paintHunt();window.scrollTo(0,0);return}
-  next();
+  if(S.i>=S.stops.length-1){next();return}
+  S.phase="done";save();paintHunt();window.scrollTo(0,0);
+}
+function afterDone(){
+  if(S.stops[S.i].mission){S.phase="mission";save();paintHunt();window.scrollTo(0,0)}else next();
+}
+function pressFound(){
+  const last=S.i>=S.stops.length-1;
+  if(last||S.notes||S.arrived){foundStop();return}
+  S.arrived=true;save();paintHunt();
 }
 function next(){
-  S.phase="clue";
+  S.phase="clue";S.arrived=false;
   if(S.i>=S.stops.length-1){hush();award();show("win");confetti();hurra();return}
   S.i++;save();paintHunt();
   $("clueCard").classList.remove("pop");void $("clueCard").offsetWidth;$("clueCard").classList.add("pop");
@@ -562,9 +604,10 @@ $("chestBack").addEventListener("click",()=>show(S.back&&S.back!=="chest"?S.back
 if(!S.chest||typeof S.chest!=="object")S.chest={};
 $("make").addEventListener("click",()=>{makeHunt();show("prep")});
 $("reshuffle").addEventListener("click",()=>{makeHunt();paintPrep();save()});
-$("start").addEventListener("click",()=>{audio();S.i=0;S.phase="clue";show("hunt")});
+$("start").addEventListener("click",()=>{audio();S.i=0;S.phase="clue";S.arrived=false;show("hunt")});
 $("showPic").addEventListener("click",()=>{$("pic").hidden=false;$("showPic").hidden=true});
-$("found").addEventListener("click",foundStop);
+$("found").addEventListener("click",pressFound);
+$("doneBtn").addEventListener("click",afterDone);
 $("missionDone").addEventListener("click",next);
 $("again").addEventListener("click",()=>show("setup"));
 $("restart").addEventListener("click",()=>{hush();show("setup")});
