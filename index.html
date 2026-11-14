@@ -307,7 +307,7 @@ const ANIMALS=[["🦊","räv"],["🐻","björn"],["🐰","kanin"],["🦉","uggla
 const $=id=>document.getElementById(id);
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const KEY="skattjakt-v1";
-let S={screen:"setup",theme:"vanlig",place:"inne",count:6,notes:true,missions:true,kids:2,equal:true,per:3,sound:true,names:["","","",""],voice:"",stops:[],i:0,phase:"clue",chest:{},last:null,lastNew:true,back:"setup"};
+let S={screen:"setup",theme:"vanlig",place:"inne",count:6,notes:true,missions:true,kids:2,equal:true,per:3,sound:true,names:["","","",""],voice:"",stops:[],i:0,phase:"clue",chest:{},last:null,lastNew:true,back:"setup",offset:0,nextStart:0};
 const th=()=>T[S.theme]||T.vanlig;
 const syms=()=>S.theme==="jul"?JULSYM:ANIMALS;
 const allPlaces=()=>PLACES[S.place].concat(S.theme==="jul"?JUL[S.place]:[]);
@@ -461,6 +461,10 @@ function paintPrep(){
   $("prepText").textContent=S.notes
     ?"Rita "+th().noteWord+" på en lapp och göm lappen på platsen. Lägg skatten på sista platsen. Den första ledtråden visas här på skärmen."
     :"Göm skatten på sista platsen. Den första ledtråden visas här på skärmen.";
+  if(S.kids>1){
+    const first=(S.nextStart||0)%S.kids,lastKid=(first+n-1)%S.kids;
+    $("prepText").textContent+=" Den här gången börjar "+kidName(first)+", och "+kidName(lastKid)+" leder sista ledtråden till skatten. Nästa jakt börjar ett annat barn.";
+  }
   const ol=$("stops");ol.textContent="";
   S.stops.forEach((s,k)=>{
     const last=k===n-1;
@@ -477,17 +481,19 @@ function paintPrep(){
     li.append(num,mid,b);ol.append(li);
   });
 }
+/* Turordning: ett nytt barn börjar varje jakt, så att det inte alltid är samma som hittar skatten. */
+const kidName=k=>(S.names[k]||"").trim()||"Barn "+(k+1);
+const kidAt=i=>(i+(S.offset||0))%Math.max(1,S.kids);
 function leader(){
   if(S.kids<2)return"";
-  const k=S.i%S.kids;
-  return(S.names[k]||"").trim()||"Barn "+(k+1);
+  return kidName(kidAt(S.i));
 }
 function paintHunt(){
   hush();
   const n=S.stops.length,s=S.stops[S.i],last=S.i===n-1;
   const tr=$("trail");tr.textContent="";
   for(let k=0;k<n;k++){const sp=document.createElement("span");sp.className=k<S.i?"done":k===S.i?"now":"";tr.append(sp)}
-  $("turnName").textContent=leader();$("turn").hidden=!leader();$("turn").dataset.kid=String(S.i%Math.max(1,S.kids));
+  $("turnName").textContent=leader();$("turn").hidden=!leader();$("turn").dataset.kid=String(kidAt(S.i));
   const onMission=S.phase==="mission"&&s.mission,onDone=S.phase==="done"&&!last;
   const busy=!!(onMission||onDone);
   $("story").textContent=th().story;$("story").hidden=!(th().story&&S.i===0&&!busy);
@@ -604,7 +610,7 @@ $("chestBack").addEventListener("click",()=>show(S.back&&S.back!=="chest"?S.back
 if(!S.chest||typeof S.chest!=="object")S.chest={};
 $("make").addEventListener("click",()=>{makeHunt();show("prep")});
 $("reshuffle").addEventListener("click",()=>{makeHunt();paintPrep();save()});
-$("start").addEventListener("click",()=>{audio();S.i=0;S.phase="clue";S.arrived=false;show("hunt")});
+$("start").addEventListener("click",()=>{audio();S.offset=(S.nextStart||0)%Math.max(1,S.kids);S.nextStart=S.offset+1;S.i=0;S.phase="clue";S.arrived=false;show("hunt")});
 $("showPic").addEventListener("click",()=>{$("pic").hidden=false;$("showPic").hidden=true});
 $("found").addEventListener("click",pressFound);
 $("doneBtn").addEventListener("click",afterDone);
