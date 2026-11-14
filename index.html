@@ -60,7 +60,12 @@ ol.stops li{display:grid;grid-template-columns:36px 1fr auto;align-items:center;
 .trail span{flex:1;height:10px;border-radius:5px;background:rgba(255,244,214,.25)}
 .trail span.done{background:var(--sun)}
 .trail span.now{background:var(--coral)}
-.turn,.story{color:var(--sand);font-weight:800}
+.story{color:var(--sand);font-weight:800}
+.turn{border-radius:18px;padding:12px 16px;display:flex;flex-direction:column;gap:2px;align-items:center;text-align:center;color:#12333B;background:var(--kid,#FFC83D);box-shadow:0 5px 0 rgba(0,0,0,.25)}
+.turn[data-kid="1"]{--kid:#8EE3C8}.turn[data-kid="2"]{--kid:#FFB3C7}.turn[data-kid="3"]{--kid:#9CD3FF}
+.turn .lbl{font-weight:800;font-size:15px;text-transform:uppercase;letter-spacing:.08em}
+.turn .who{font-family:var(--display);font-weight:800;font-size:44px;line-height:1.05;text-transform:uppercase;letter-spacing:.02em;overflow-wrap:anywhere}
+select{font:inherit;font-weight:700;padding:12px 14px;border-radius:14px;border:2px solid var(--mist);background:#fff;color:var(--ink);width:100%;min-height:52px}
 .story{font-family:var(--display);font-size:22px;line-height:1.25;text-wrap:balance}
 .mission{font-family:var(--display);font-weight:800;font-size:30px;line-height:1.2;text-wrap:balance}
 .riddle{font-family:var(--display);font-weight:600;font-size:28px;line-height:1.25;text-wrap:balance}
@@ -150,6 +155,12 @@ canvas#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:non
       </div>
       <span class="hint">Vid varannan plats får barnen en liten uppgift, som att hoppa eller sjunga, innan nästa ledtråd.</span>
     </div>
+    <div class="field" id="voiceField" hidden>
+      <label class="label" for="voice">Röst för uppläsning</label>
+      <select id="voice"></select>
+      <button type="button" id="voiceTest">Provlyssna</button>
+      <span class="hint">Rösterna kommer från telefonen. De som heter Premium eller Förbättrad låter mest naturliga och kan laddas ner i telefonens inställningar.</span>
+    </div>
     <div class="field">
       <span class="label">Ljud</span>
       <div class="seg" id="sound">
@@ -174,7 +185,7 @@ canvas#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:non
   <section id="hunt" hidden style="display:flex;flex-direction:column;gap:16px">
     <div class="trail" id="trail" aria-hidden="true"></div>
     <p class="story" id="story" hidden></p>
-    <p class="turn" id="turn"></p>
+    <div class="turn pop" id="turn" hidden><span class="lbl">Nu leder</span><span class="who" id="turnName"></span></div>
     <div class="card center" id="missionCard" hidden>
       <div class="big pop" id="missionIcon"></div>
       <p class="label">Uppdrag innan nästa ledtråd</p>
@@ -284,7 +295,7 @@ const ANIMALS=[["🦊","räv"],["🐻","björn"],["🐰","kanin"],["🦉","uggla
 const $=id=>document.getElementById(id);
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const KEY="skattjakt-v1";
-let S={screen:"setup",theme:"vanlig",place:"inne",count:6,notes:true,missions:true,kids:2,equal:true,per:3,sound:true,names:["","","",""],stops:[],i:0,phase:"clue",chest:{},last:null,lastNew:true,back:"setup"};
+let S={screen:"setup",theme:"vanlig",place:"inne",count:6,notes:true,missions:true,kids:2,equal:true,per:3,sound:true,names:["","","",""],voice:"",stops:[],i:0,phase:"clue",chest:{},last:null,lastNew:true,back:"setup"};
 const th=()=>T[S.theme]||T.vanlig;
 const syms=()=>S.theme==="jul"?JULSYM:ANIMALS;
 const allPlaces=()=>PLACES[S.place].concat(S.theme==="jul"?JUL[S.place]:[]);
@@ -319,12 +330,34 @@ function paintCount(){
 }
 /* Uppläsning med telefonens egen röst. Knapparna göms om telefonen saknar stöd. */
 const canSpeak=typeof window!=="undefined"&&"speechSynthesis" in window&&typeof SpeechSynthesisUtterance!=="undefined";
+/* Väljer den mest naturliga svenska rösten som finns installerad. */
+function voiceScore(v){
+  const n=v.name||"";let p=0;
+  if(/premium/i.test(n))p+=4;
+  if(/enhanced|förbättrad|natural|neural/i.test(n))p+=3;
+  if(/google/i.test(n))p+=2;
+  if(/compact|eloquence|espeak/i.test(n))p-=2;
+  if(/^sv[-_]SE/i.test(v.lang))p+=1;
+  return p;
+}
+function svVoices(){
+  if(!canSpeak)return[];
+  try{return speechSynthesis.getVoices().filter(v=>/^sv/i.test(v.lang)).sort((a,b)=>voiceScore(b)-voiceScore(a))}catch(e){return[]}
+}
+function pickVoice(){const vs=svVoices();return vs.find(v=>v.name===S.voice)||vs[0]||null}
+function paintVoices(){
+  const vs=svVoices(),sel=$("voice");
+  $("voiceField").hidden=vs.length<1;
+  sel.textContent="";
+  const cur=pickVoice();
+  vs.forEach(v=>{const o=document.createElement("option");o.value=v.name;o.textContent=v.name;o.selected=!!cur&&v.name===cur.name;sel.append(o)});
+}
 function speak(text){
   if(!canSpeak)return;
   try{
     speechSynthesis.cancel();
-    const u=new SpeechSynthesisUtterance(text);u.lang="sv-SE";u.rate=0.9;
-    const v=speechSynthesis.getVoices().find(v=>/^sv/i.test(v.lang));if(v)u.voice=v;
+    const u=new SpeechSynthesisUtterance(text);u.lang="sv-SE";u.rate=0.92;u.pitch=1;
+    const v=pickVoice();if(v){u.voice=v;u.lang=v.lang}
     speechSynthesis.speak(u);
   }catch(e){}
 }
@@ -360,7 +393,7 @@ function paintNames(){
     inp.addEventListener("input",e=>{S.names[k]=e.target.value;save()});
     box.append(inp);
   }
-  $("kidsHint").textContent=S.kids>1?"Barnen turas om att leda vägen. Namnen är frivilliga.":"Namnet är frivilligt.";
+  $("kidsHint").textContent=S.kids>1?"Barnen turas om att leda vägen, och varje barn får en egen färg. Namnen är frivilliga.":"Namnet är frivilligt.";
 }
 /* Ljud: allt skapas med Web Audio, så appen behöver inga ljudfiler. */
 let AC=null;
@@ -435,14 +468,14 @@ function paintPrep(){
 function leader(){
   if(S.kids<2)return"";
   const k=S.i%S.kids;
-  return((S.names[k]||"").trim()||"Barn "+(k+1))+" leder vägen";
+  return(S.names[k]||"").trim()||"Barn "+(k+1);
 }
 function paintHunt(){
   hush();
   const n=S.stops.length,s=S.stops[S.i],last=S.i===n-1;
   const tr=$("trail");tr.textContent="";
   for(let k=0;k<n;k++){const sp=document.createElement("span");sp.className=k<S.i?"done":k===S.i?"now":"";tr.append(sp)}
-  $("turn").textContent=leader();$("turn").hidden=!leader();
+  $("turnName").textContent=leader();$("turn").hidden=!leader();$("turn").dataset.kid=String(S.i%Math.max(1,S.kids));
   const onMission=S.phase==="mission"&&s.mission;
   $("story").textContent=th().story;$("story").hidden=!(th().story&&S.i===0&&!onMission);
   $("missionCard").hidden=!onMission;$("clueCard").hidden=!!onMission;$("answerCard").hidden=!!onMission;
@@ -517,6 +550,10 @@ seg("sound",()=>S.sound?1:0,v=>{S.sound=v==="1";if(S.sound)ding()});
 paintNames();paintCount();
 $("replay").addEventListener("click",hurra);
 $("speakClue").hidden=$("speakMission").hidden=!canSpeak;
+paintVoices();
+if(canSpeak){try{speechSynthesis.addEventListener("voiceschanged",paintVoices)}catch(e){}}
+$("voice").addEventListener("change",e=>{S.voice=e.target.value;save()});
+$("voiceTest").addEventListener("click",()=>speak("Hej! Nu börjar skattjakten. Är ni redo?"));
 $("speakClue").addEventListener("click",()=>speak($("riddle").textContent));
 $("speakMission").addEventListener("click",()=>speak($("missionText").textContent));
 $("openChest").addEventListener("click",openChest);
