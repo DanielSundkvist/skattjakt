@@ -488,6 +488,13 @@ function leader(){
   if(S.kids<2)return"";
   return kidName(kidAt(S.i));
 }
+/* Gåtans sista mening säger var man ska leta. Den visas bara när det finns något att hitta:
+   en lapp, eller skatten på sista platsen. Annars frågar gåtan bara vart barnen ska springa. */
+function clueText(s,last){
+  if(S.notes||last)return s.riddle;
+  const m=/^(.*[.!?])\s+[^.!?]+[.!?]$/.exec(s.riddle);
+  return(m?m[1]:s.riddle)+" Vart ska ni springa?";
+}
 function paintHunt(){
   hush();
   const n=S.stops.length,s=S.stops[S.i],last=S.i===n-1;
@@ -508,7 +515,7 @@ function paintHunt(){
   if(onMission){$("missionIcon").textContent=s.mission[0];$("missionText").textContent=S.kids<2?s.mission[1].replace("Ge varandra en","Ge en vuxen en"):s.mission[1];return}
   $("clueNo").textContent=last?"Sista ledtråden: nu letar ni efter skatten!":"Ledtråd "+(S.i+1)+" av "+n;
   $("clueCard").classList.toggle("final",last);$("answerCard").classList.toggle("final",last);
-  $("riddle").textContent=s.riddle;
+  $("riddle").textContent=clueText(s,last);
   $("pic").textContent=s.pic;$("pic").hidden=true;$("showPic").hidden=false;
   $("msg").textContent="";
   const grid=$("animals"),found=$("found");grid.textContent="";grid.classList.toggle("places",!last&&!S.notes);
