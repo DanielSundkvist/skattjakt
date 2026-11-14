@@ -245,48 +245,69 @@ canvas#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:non
 <canvas id="confetti" hidden></canvas>
 
 <script>
+/* Varje plats: [namn, bild, [rim...]]. Sista meningen i ett rim säger var man ska leta. */
 const PLACES={
  inne:[
-  ["Kylskåpet","🧊","Här är det kallt och här bor mjölken. Öppna dörren och kika in!"],
-  ["Sängen","🛏️","Här sover du när dagen är slut. Titta under täcket, kryp sen ut!"],
-  ["Soffan","🛋️","Här sitter vi och myser ihop. Leta bland kuddarna, hopp hopp hopp!"],
-  ["Duschen","🚿","Här blir du ren från topp till tå. Vattnet strilar, plaska på!"],
-  ["Skohyllan","👟","Här bor skorna, två och två. Leta bland dem, titta på!"],
-  ["Bokhyllan","📚","Här står sagorna på rad. Leta bland böckerna, så blir du glad!"],
-  ["Ytterdörren","🚪","Knack, knack! Här går vi ut och in. Leta vid dörren, skynda dig, spring!"],
-  ["Köksbordet","🍽️","Här äter vi mat, mums och smask. Kryp under bordet, snabb som en mask!"],
-  ["Spegeln","🪞","Här ser du någon som liknar dig. Vinka och säg: hej på dig!"],
-  ["Teven","📺","Här visas film och barnprogram. Leta bredvid, kom fram, kom fram!"],
-  ["Tandborsten","🪥","Den borstar tänderna morgon och kväll. Leta där den bor, var snäll!"],
-  ["Klädskåpet","👕","Här bor tröjor och byxor fina. Öppna och leta bland dina!"],
-  ["Tvättmaskinen","🧺","Den snurrar runt och tvättar rent. Leta där, det är inte för sent!"],
-  ["Jackorna i hallen","🧥","Här hänger jackor, mössor och vantar. Leta bland dem, runt alla kanter!"],
-  ["Leksakslådan","🧸","Här bor nallar och bilar små. Gräv i lådan och leta då!"],
-  ["Fönstret","🪟","Här tittar du ut på himmel och träd. Leta på brädan, följ med, följ med!"]
+  ["Kylskåpet","🧊",["Här är det kallt och här bor mjölken. Öppna dörren och kika in!","Jag brummar tyst och håller maten kall. Leta hos mig i alla fall!","Smör och ost och juice bor här hos mig. Öppna min dörr, så visar jag dig!"]],
+  ["Sängen","🛏️",["Här sover du när dagen är slut. Titta under täcket, kryp sen ut!","Kudde och täcke har jag på mig. Leta hos mig, jag väntar på dig!","Här drömmer du hela natten lång. Leta här en liten gång!"]],
+  ["Soffan","🛋️",["Här sitter vi och myser ihop. Leta bland kuddarna, hopp hopp hopp!","Jag är mjuk och bred och har många kuddar. Leta bakom mig, där dammet luddar!","Här kryper vi upp med en filt ibland. Känn mellan kuddarna med din hand!"]],
+  ["Duschen","🚿",["Här blir du ren från topp till tå. Vattnet strilar, plaska på!","Här regnar det inne, fast bara på dig. Leta i hörnet och hitta mig!","Tvål och schampo står här på rad. Leta bland flaskorna och bli glad!"]],
+  ["Skohyllan","👟",["Här bor skorna, två och två. Leta bland dem, titta på!","Stövlar och tofflor bor hos mig. Leta bland skorna, säger jag dig!","Hit kommer fötternas kläder när du går in. Leta i en sko, kanske är den din!"]],
+  ["Bokhyllan","📚",["Här står sagorna på rad. Leta bland böckerna, så blir du glad!","Jag är full av sidor, bilder och ord. Leta på hyllan, från syd till nord!","Här väntar äventyr mellan pärmar. Leta bland böckerna, det värmer!"]],
+  ["Ytterdörren","🚪",["Knack, knack! Här går vi ut och in. Leta vid dörren, skynda dig, spring!","Jag har ett handtag och ett lås. Leta vid mattan, där den ligger förstås!","När det ringer på öppnar du mig. Leta vid golvet, det lönar sig!"]],
+  ["Köksbordet","🍽️",["Här äter vi mat, mums och smask. Kryp under bordet, snabb som en mask!","Fyra ben har jag men kan inte gå. Leta under mig, kryp på tå!","Här står tallrikar, glas och fat. Leta under mig efter mer än mat!"]],
+  ["Spegeln","🪞",["Här ser du någon som liknar dig. Vinka och säg: hej på dig!","Jag härmar allt du gör, varje gång. Leta nära mig och sjung en sång!","I mig kan du se om håret står på ända. Leta vid min kant, vad kan väl hända!"]],
+  ["Teven","📺",["Här visas film och barnprogram. Leta bredvid, kom fram, kom fram!","Jag är svart när jag sover och full av färg när jag är på. Leta bakom mig, försiktigt på tå!","Med fjärrkontrollen väcker du mig. Leta bredvid, där gömmer det sig!"]],
+  ["Tandborsten","🪥",["Den borstar tänderna morgon och kväll. Leta där den bor, var snäll!","Jag har borst men är ingen kvast. Leta i badrummet, håll i dig fast!","Med tandkräm på mig blir leendet vitt. Leta vid handfatet, det är mitt!"]],
+  ["Klädskåpet","👕",["Här bor tröjor och byxor fina. Öppna och leta bland dina!","På galgar och hyllor ligger kläderna här. Leta längst in, kanske är det där!","Strumpor och tröjor gömmer jag bra. Öppna min dörr, vad kan jag ha?"]],
+  ["Tvättmaskinen","🧺",["Den snurrar runt och tvättar rent. Leta där, det är inte för sent!","Smutsiga kläder är min bästa mat. Leta vid min lucka, var inte lat!","Jag skakar och brummar när jag gör mitt jobb. Leta ovanpå mig, upp och hopp!"]],
+  ["Jackorna i hallen","🧥",["Här hänger jackor, mössor och vantar. Leta bland dem, runt alla kanter!","Vi hänger på krokar och håller dig varm. Leta i en ficka med din arm!","När det är kallt tar du oss på. Leta i fickorna, en och två!"]],
+  ["Leksakslådan","🧸",["Här bor nallar och bilar små. Gräv i lådan och leta då!","I mig hamnar allt när du städar ditt rum. Leta på botten, rota runt, bum bum!","Dockor och pussel och lego bor här. Leta bland sakerna som du har kär!"]],
+  ["Fönstret","🪟",["Här tittar du ut på himmel och träd. Leta på brädan, följ med, följ med!","Jag är av glas och släpper in ljus. Leta vid mig i ditt hus!"]],
+  ["Handfatet","🚰",["Här tvättar du händerna med tvål och vatten. Leta vid kranen, snabb som katten!","Jag har en kran och en liten propp. Leta under mig, böj din kropp!"]],
+  ["Toaletten","🚽",["Hit springer du när du måste kissa. Leta bakom mig, det får du inte missa!","Jag spolar och säger schhh när du är klar. Leta bredvid mig, vad finns där kvar?"]],
+  ["Stolen","🪑",["Fyra ben har jag och en rygg att luta mot. Leta under mig, vid min fot!","På mig sitter du när du äter din mat. Titta under sitsen, platt som ett fat!"]],
+  ["Klockan","⏰",["Tick, tack, jag visar vad tiden är. Leta nära mig, kanske finns det där!","Jag har visare men inga händer. Leta under mig, vem vet vad som händer!"]],
+  ["Pennorna","🖍️",["Med oss ritar du sol och hus och träd. Leta bland oss, ta en färg med!","Röd och gul och grön och blå, det är vi. Leta där vi bor, en, två, tre!"]],
+  ["Papperskorgen","🗑️",["Här slänger du skräp och gamla papper. Leta bredvid mig, var lite tapper!","Jag äter skal och skräp varje dag. Leta bakom mig, ett litet tag!"]],
+  ["Krukväxten","🪴",["Jag är grön och dricker vatten ur kanna. Leta vid min kruka, där ska du stanna!","Jag har blad men är ingen bok. Leta vid min kruka, var lite klok!"]],
+  ["Skedlådan","🥄",["Här bor alla skedar, stora och små. Öppna lådan och leta då!","Med oss äter du soppa och glass. Leta i lådan, där har vi vår plats!"]],
+  ["Ryggsäcken","🎒",["Mig bär du på ryggen när du går ut. Öppna mitt blixtlås, leta till slut!","Jag har två remmar och ett stort fack. Leta i mig, tack, tack, tack!"]]
  ],
  ute:[
-  ["Trädet","🌳","Jag har grenar och står så stilla. Leta vid min stam, du lilla!"],
-  ["Rutschkanan","🛝","Klättra upp och åk sen ner. Leta där, så hittar du mer!"],
-  ["Brevlådan","📬","Hit kommer brev och tidningar med. Lyft på locket och titta ned!"],
-  ["Cykeln","🚲","Två hjul har jag, pling pling pling! Leta hos mig, spring, spring, spring!"],
-  ["Bilen","🚗","Brum, brum! Jag har fyra hjul. Leta vid mig, det blir kul!"],
-  ["Bänken","🪑","Här vilar man benen en liten stund. Kika under, böj dig som en hund!"],
-  ["Stora stenen","🪨","Jag är hård och grå och tung. Leta bakom mig, gammal som ung!"],
-  ["Trappan","🪜","Steg för steg går du upp på mig. Leta vid första steget, säger jag dig!"],
-  ["Sandlådan","🏖️","Här bygger du slott med spade och hink. Gräv lite grann, blink, blink, blink!"],
-  ["Busken","🌿","Jag är låg och full av kvistar. Leta bakom mig, ingen missar!"],
-  ["Blomkrukan","🪴","Här bor en växt i mjuk, brun jord. Leta bredvid, utan ett ord!"],
-  ["Utelampan","💡","Jag lyser när kvällen blir mörk och sen. Leta vid mig, min lilla vän!"]
+  ["Trädet","🌳",["Jag har grenar och står så stilla. Leta vid min stam, du lilla!","På sommaren har jag löv, på vintern är jag kal. Leta vid mina rötter, det är ditt val!"]],
+  ["Rutschkanan","🛝",["Klättra upp och åk sen ner. Leta där, så hittar du mer!","Jag är hal och lång och full av fart. Leta under mig, det går så klart!"]],
+  ["Brevlådan","📬",["Hit kommer brev och tidningar med. Lyft på locket och titta ned!","Brevbäraren hälsar på mig varje dag. Öppna min lucka och titta ett slag!"]],
+  ["Cykeln","🚲",["Två hjul har jag, pling pling pling! Leta hos mig, spring, spring, spring!","Trampa på mina pedaler, så rullar vi. Leta vid mitt hjul, en, två, tre!"]],
+  ["Bilen","🚗",["Brum, brum! Jag har fyra hjul. Leta vid mig, det blir kul!","Jag har ratt och lyktor och tutar tut. Leta vid mina hjul, leta till slut!"]],
+  ["Bänken","🪑",["Här vilar man benen en liten stund. Kika under, böj dig som en hund!","Jag står ute i både regn och sol. Leta under mig, nu är det ditt mål!"]],
+  ["Stora stenen","🪨",["Jag är hård och grå och tung. Leta bakom mig, gammal som ung!","Jag har legat här i tusen år. Leta runt mig, se vad du får!"]],
+  ["Trappan","🪜",["Steg för steg går du upp på mig. Leta vid första steget, säger jag dig!","Upp och ner går alla på mig. Leta på mitt första steg, det lönar sig!"]],
+  ["Sandlådan","🏖️",["Här bygger du slott med spade och hink. Gräv lite grann, blink, blink, blink!","Här bakar du kakor som ingen kan äta. Gräv lite i sanden och börja leta!"]],
+  ["Busken","🌿",["Jag är låg och full av kvistar. Leta bakom mig, ingen missar!","Bakom mig kan man gömma sig bra. Leta hos mig, vad kan jag ha?"]],
+  ["Blomkrukan","🪴",["Här bor en växt i mjuk, brun jord. Leta bredvid, utan ett ord!","Jag står vid dörren med blommor i. Leta bakom mig, ett, två, tre!"]],
+  ["Utelampan","💡",["Jag lyser när kvällen blir mörk och sen. Leta vid mig, min lilla vän!","På dagen sover jag, på kvällen är jag tänd. Leta under mig, min bästa vän!"]],
+  ["Pulkan","🛷",["På mig åker du nerför backen i snö. Leta under mig, hej och hö!","Jag glider fort när marken är vit. Leta hos mig, spring nu hit!"]],
+  ["Soptunnan","🗑️",["Jag har lock och hjul och luktar inte gott. Leta bakom mig, det går så flott!"]],
+  ["Bollen","⚽",["Mig sparkar du på så att jag rullar. Leta där jag ligger, bland gräs och kullar!","Jag är rund och studsar upp och ner. Leta där jag ligger, så hittar du mer!"]],
+  ["Flaggstången","🚩",["Jag är lång och smal med en flagga i topp. Leta vid min fot, hopp, hopp, hopp!"]],
+  ["Hinken","🪣",["Mig fyller du med sand eller vatten. Leta i mig, snabb som katten!","Jag har ett handtag och är alldeles tom. Titta i mig, kom, kom, kom!"]],
+  ["Ringklockan","🔔",["Ding dong säger jag när gästerna kommer. Leta under mig, vinter som sommar!"]],
+  ["Fågelbordet","🐦",["Här äter småfåglar frön när det är kallt. Leta under mig, titta överallt!"]]
  ]
 };
 const JUL={
  inne:[
-  ["Julgranen","🎄","Jag är grön och klädd i glitter och ljus. Leta under mig, mitt i vårt hus!"],
-  ["Adventsljusstaken","🕯️","Mina ljus räknar ner till jul. Leta bredvid mig, det blir kul!"],
-  ["Pepparkaksburken","🍪","Här bor kakor som luktar kanel. Leta bredvid, men ta ingen del!"]
+  ["Julgranen","🎄",["Jag är grön och klädd i glitter och ljus. Leta under mig, mitt i vårt hus!","I min topp sitter en stjärna så klar. Leta under grenarna, se vad jag har!"]],
+  ["Adventsljusstaken","🕯️",["Mina ljus räknar ner till jul. Leta bredvid mig, det blir kul!","Fyra ljus har jag, ett för varje söndag. Leta bredvid mig, gör det idag!"]],
+  ["Pepparkaksburken","🍪",["Här bor kakor som luktar kanel. Leta bredvid, men ta ingen del!","Hjärtan och gubbar och grisar bor här. Leta vid burken, kanske finns det där!"]],
+  ["Adventskalendern","📅",["En lucka om dagen öppnar du på mig. Leta bakom mig, det lönar sig!"]],
+  ["Tomtefiguren","🎅",["Jag har röd luva och långt vitt skägg. Leta bakom mig, vid en vägg!"]],
+  ["Julstjärnan i fönstret","⭐",["Jag hänger i fönstret och lyser i kvällen. Leta under mig, det är stället!"]]
  ],
  ute:[
-  ["Julbelysningen","✨","Jag glittrar i mörkret, blink och glimt. Leta under mig, det går så fint!"]
+  ["Julbelysningen","✨",["Jag glittrar i mörkret, blink och glimt. Leta under mig, det går så fint!","Hundra små lampor lyser på rad. Leta under mig och bli glad!"]],
+  ["Snögubben","⛄",["Jag har morot till näsa och magen full av snö. Leta bakom mig, innan jag blir en sjö!"]]
  ]
 };
 const JULSYM=[["🎅","tomte"],["⭐","stjärna"],["🎄","gran"],["🦌","ren"],["🕯️","ljus"],["🎁","klapp"],["⛄","snögubbe"],["🔔","klocka"],["🍪","pepparkaka"],["❄️","snöflinga"]];
@@ -307,7 +328,7 @@ const ANIMALS=[["🦊","räv"],["🐻","björn"],["🐰","kanin"],["🦉","uggla
 const $=id=>document.getElementById(id);
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const KEY="skattjakt-v1";
-let S={screen:"setup",theme:"vanlig",place:"inne",count:6,notes:true,missions:true,kids:2,equal:true,per:3,sound:true,names:["","","",""],voice:"",stops:[],i:0,phase:"clue",chest:{},last:null,lastNew:true,back:"setup",offset:0,nextStart:0};
+let S={screen:"setup",theme:"vanlig",place:"inne",count:6,notes:true,missions:true,kids:2,equal:true,per:3,sound:true,names:["","","",""],voice:"",stops:[],i:0,phase:"clue",chest:{},last:null,lastNew:true,back:"setup",offset:0,nextStart:0,seen:{}};
 const th=()=>T[S.theme]||T.vanlig;
 const syms=()=>S.theme==="jul"?JULSYM:ANIMALS;
 const allPlaces=()=>PLACES[S.place].concat(S.theme==="jul"?JUL[S.place]:[]);
@@ -440,11 +461,18 @@ function paintSetup(){
     ?(S.theme==="jul"?"Du gömmer en lapp med en julbild på varje plats. Barnen trycker på rätt bild för att få nästa ledtråd.":"Du gömmer en lapp med ett djur på varje plats. Barnen trycker på rätt djur för att få nästa ledtråd.")
     :"Du gömmer bara skatten. Barnen springer till platsen och trycker på rätt bild i appen. Då får de stjärnor och nästa ledtråd.";
 }
+/* Väljer ett rim för platsen, helst ett annat än förra gången platsen var med. */
+function pickRiddle(p){
+  const rs=p[2];S.seen=S.seen||{};
+  let k=Math.floor(Math.random()*rs.length);
+  if(rs.length>1&&k===S.seen[p[0]])k=(k+1)%rs.length;
+  S.seen[p[0]]=k;return rs[k];
+}
 function makeHunt(){
   const extra=S.theme==="jul"?shuffle(JUL[S.place]).slice(0,2):[];
   const pool=shuffle(extra.concat(shuffle(PLACES[S.place])).slice(0,total()));
   const an=shuffle(syms()),ms=shuffle(MISSIONS[S.theme]||MISSIONS.vanlig);
-  S.stops=pool.map((p,k)=>({name:p[0],pic:p[1],riddle:p[2],animal:an[k%an.length],
+  S.stops=pool.map((p,k)=>({name:p[0],pic:p[1],riddle:pickRiddle(p),animal:an[k%an.length],
     mission:S.missions&&k%2===0&&k<pool.length-1?ms[(k/2)%ms.length]:null}));
   S.i=0;S.phase="clue";
 }
@@ -453,7 +481,7 @@ function swapStop(k){
   const free=allPlaces().filter(p=>!used.has(p[0]));
   if(!free.length)return;
   const p=free[Math.floor(Math.random()*free.length)];
-  S.stops[k]=Object.assign(S.stops[k],{name:p[0],pic:p[1],riddle:p[2]});
+  S.stops[k]=Object.assign(S.stops[k],{name:p[0],pic:p[1],riddle:pickRiddle(p)});
   paintPrep();save();
 }
 function paintPrep(){
