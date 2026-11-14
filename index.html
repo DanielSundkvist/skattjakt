@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0E4D5C" id="themeColor">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Skattjakt">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<title>Familjens skattjakt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Layout: en smal kolumn som ett kort på ett hav, stora tryckytor för små fingrar. En värld, ett tema. */
+  --sea:#0E4D5C; --deep:#083640; --sand:#FFF4D6; --sun:#FFC83D; --coral:#FF6B57; --ink:#12333B; --mist:#CFE6E4;
+  --display:"Baloo 2","Trebuchet MS",system-ui,sans-serif;
+  --body:"Nunito","Segoe UI",system-ui,sans-serif;
+  --glow:#16697a; --shade:#d99a00;
+  color-scheme:light;
+}
+body.jul{--sea:#8E1F2F; --deep:#560F1A; --glow:#B5343F; --sand:#FFF8EC; --coral:#1F7A4D; --mist:#EAD9C8; --ink:#3A1218}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent;background:var(--sea);color:var(--ink);font-family:var(--body);font-size:18px;line-height:1.45;
+  background-image:radial-gradient(circle at 20% 0%,var(--glow) 0,transparent 55%),radial-gradient(circle at 90% 100%,var(--deep) 0,transparent 60%)}
+main{max-width:520px;margin:0 auto;padding:max(20px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(40px,calc(env(safe-area-inset-bottom) + 24px)) max(16px,env(safe-area-inset-left));display:flex;flex-direction:column;gap:16px;min-height:100%}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;color:var(--sand)}
+h1{font-family:var(--display);font-weight:800;font-size:30px;margin:0;line-height:1.1;text-wrap:balance}
+h2{font-family:var(--display);font-weight:800;font-size:24px;margin:0;line-height:1.15;text-wrap:balance}
+p{margin:0}
+.card{background:var(--sand);border-radius:22px;padding:20px;display:flex;flex-direction:column;gap:18px;box-shadow:0 8px 0 var(--deep)}
+.field{display:flex;flex-direction:column;gap:8px}
+.label{font-weight:800;font-size:16px}
+.hint{font-size:15px;opacity:.75}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1 1 80px}
+button{touch-action:manipulation;-webkit-user-select:none;user-select:none;font:inherit;font-weight:800;border:0;border-radius:16px;padding:14px 16px;cursor:pointer;color:var(--ink);background:#fff;box-shadow:inset 0 0 0 2px var(--mist);min-height:52px}
+button[aria-pressed="true"]{background:var(--sea);color:var(--sand);box-shadow:none}
+button.primary{background:var(--sun);box-shadow:0 5px 0 var(--shade);font-family:var(--display);font-size:22px}
+button.primary:active{transform:translateY(3px);box-shadow:0 2px 0 #d99a00}
+button.quiet{background:transparent;box-shadow:none;color:var(--sand);text-decoration:underline;min-height:0;padding:6px 4px;font-weight:700;font-size:16px}
+button.small{min-height:40px;padding:8px 12px;font-size:15px;border-radius:12px}
+button:focus-visible,input:focus-visible{outline:3px solid var(--coral);outline-offset:2px}
+input[type=text]{-webkit-appearance:none;appearance:none;font:inherit;padding:12px 14px;border-radius:14px;border:2px solid var(--mist);background:#fff;color:var(--ink);width:100%;min-width:0}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row>*{flex:1 1 40%}
+ol.stops{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+ol.stops li{display:grid;grid-template-columns:36px 1fr auto;align-items:center;gap:10px;background:#fff;border-radius:14px;padding:10px 12px}
+.num{font-family:var(--display);font-weight:800;font-size:20px;background:var(--sea);color:var(--sand);width:36px;height:36px;border-radius:50%;display:grid;place-items:center}
+.where{font-weight:800}
+.what{font-size:15px;opacity:.8}
+.treasure .num{background:var(--coral)}
+.trail{display:flex;gap:6px}
+.trail span{flex:1;height:10px;border-radius:5px;background:rgba(255,244,214,.25)}
+.trail span.done{background:var(--sun)}
+.trail span.now{background:var(--coral)}
+.turn,.story{color:var(--sand);font-weight:800}
+.story{font-family:var(--display);font-size:22px;line-height:1.25;text-wrap:balance}
+.mission{font-family:var(--display);font-weight:800;font-size:30px;line-height:1.2;text-wrap:balance}
+.riddle{font-family:var(--display);font-weight:600;font-size:28px;line-height:1.25;text-wrap:balance}
+.pic{font-size:110px;line-height:1;text-align:center;padding:8px 0}
+.animals{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.animals button{font-size:46px;padding:10px;min-height:84px}
+.animals button.wrong{animation:shake .4s;background:#ffd9d3}
+.msg{font-weight:800;color:var(--coral);min-height:1.45em}
+.big{font-size:96px;text-align:center;line-height:1}
+.center{text-align:center}
+canvas#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+@keyframes pop{from{transform:scale(.6)}to{transform:scale(1)}}
+.pop{animation:pop .35s ease-out}
+@media (prefers-reduced-motion:reduce){.pop,.animals button.wrong{animation:none}}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1 id="title">Familjens skattjakt</h1>
+    <button class="quiet" id="restart" type="button" hidden>Börja om</button>
+  </header>
+
+  <!-- 1. Inställningar (för den vuxna) -->
+  <section class="card" id="setup">
+    <h2>Gör en ny skattjakt</h2>
+    <div class="field">
+      <span class="label">Vilket tema?</span>
+      <div class="seg" id="theme">
+        <button type="button" data-v="vanlig" aria-pressed="true">Vanlig skattjakt</button>
+        <button type="button" data-v="jul" aria-pressed="false">Tomtens säck</button>
+      </div>
+    </div>
+    <div class="field">
+      <span class="label">Var ska ni leta?</span>
+      <div class="seg" id="place">
+        <button type="button" data-v="inne" aria-pressed="true">Inne</button>
+        <button type="button" data-v="ute" aria-pressed="false">Ute</button>
+      </div>
+    </div>
+    <div class="field">
+      <span class="label">Hur många ledtrådar?</span>
+      <div class="seg" id="count">
+        <button type="button" data-v="4" aria-pressed="false">4</button>
+        <button type="button" data-v="6" aria-pressed="true">6</button>
+        <button type="button" data-v="8" aria-pressed="false">8</button>
+      </div>
+    </div>
+    <div class="field">
+      <span class="label">Hur många barn är med?</span>
+      <div class="seg" id="kids">
+        <button type="button" data-v="1" aria-pressed="false">1</button>
+        <button type="button" data-v="2" aria-pressed="true">2</button>
+        <button type="button" data-v="3" aria-pressed="false">3</button>
+        <button type="button" data-v="4" aria-pressed="false">4</button>
+      </div>
+      <div class="row" id="names"></div>
+      <span class="hint" id="kidsHint"></span>
+    </div>
+    <div class="field">
+      <span class="label">Hemliga lappar</span>
+      <div class="seg" id="notes">
+        <button type="button" data-v="1" aria-pressed="true">Med lappar</button>
+        <button type="button" data-v="0" aria-pressed="false">Utan lappar</button>
+      </div>
+      <span class="hint" id="notesHint"></span>
+    </div>
+    <div class="field">
+      <span class="label">Uppdrag på vägen</span>
+      <div class="seg" id="missions">
+        <button type="button" data-v="1" aria-pressed="true">Med uppdrag</button>
+        <button type="button" data-v="0" aria-pressed="false">Utan uppdrag</button>
+      </div>
+      <span class="hint">Vid varannan plats får barnen en liten uppgift, som att hoppa eller sjunga, innan nästa ledtråd.</span>
+    </div>
+    <div class="field">
+      <span class="label">Ljud</span>
+      <div class="seg" id="sound">
+        <button type="button" data-v="1" aria-pressed="true">Med ljud</button>
+        <button type="button" data-v="0" aria-pressed="false">Utan ljud</button>
+      </div>
+      <span class="hint">En hurrasång spelas när skatten är hittad. På iPhone måste ljudlöst läge vara avstängt.</span>
+    </div>
+    <button class="primary" type="button" id="make">Skapa skattjakten</button>
+  </section>
+
+  <!-- 2. Förberedelser (för den vuxna) -->
+  <section class="card" id="prep" hidden>
+    <h2>Förbered i smyg</h2>
+    <p id="prepText"></p>
+    <ol class="stops" id="stops"></ol>
+    <button type="button" id="reshuffle">Slumpa nya platser</button>
+    <button class="primary" type="button" id="start">Starta jakten</button>
+  </section>
+
+  <!-- 3. Jakten (för barnen) -->
+  <section id="hunt" hidden style="display:flex;flex-direction:column;gap:16px">
+    <div class="trail" id="trail" aria-hidden="true"></div>
+    <p class="story" id="story" hidden></p>
+    <p class="turn" id="turn"></p>
+    <div class="card center" id="missionCard" hidden>
+      <div class="big pop" id="missionIcon"></div>
+      <p class="label">Uppdrag innan nästa ledtråd</p>
+      <p class="mission" id="missionText"></p>
+      <button class="primary" type="button" id="missionDone">Klart!</button>
+    </div>
+    <div class="card" id="clueCard">
+      <p class="label" id="clueNo"></p>
+      <p class="riddle" id="riddle"></p>
+      <div class="pic pop" id="pic" hidden></div>
+      <button type="button" id="showPic">Visa bildledtråd</button>
+    </div>
+    <div class="card" id="answerCard">
+      <p class="label" id="question"></p>
+      <div class="animals" id="animals"></div>
+      <p class="msg" id="msg" role="status"></p>
+      <button class="primary" type="button" id="found"></button>
+    </div>
+  </section>
+
+  <!-- 4. Skatten är hittad -->
+  <section class="card center" id="win" hidden>
+    <div class="big pop" id="winIcon">🏆</div>
+    <h2 id="winTitle">Ni hittade skatten!</h2>
+    <p id="winText">Bra jobbat, skattjägare. Nu är skatten er.</p>
+    <button type="button" id="replay">Spela hurrasången igen</button>
+    <button class="primary" type="button" id="again">Gör en ny skattjakt</button>
+  </section>
+</main>
+<canvas id="confetti" hidden></canvas>
+
+<script>
+const PLACES={
+ inne:[
+  ["Kylskåpet","🧊","Här är det kallt och här bor mjölken. Öppna dörren och kika in!"],
+  ["Sängen","🛏️","Här sover du när dagen är slut. Titta under täcket, kryp sen ut!"],
+  ["Soffan","🛋️","Här sitter vi och myser ihop. Leta bland kuddarna, hopp hopp hopp!"],
+  ["Duschen","🚿","Här blir du ren från topp till tå. Vattnet strilar, plaska på!"],
+  ["Skohyllan","👟","Här bor skorna, två och två. Leta bland dem, titta på!"],
+  ["Bokhyllan","📚","Här står sagorna på rad. Leta bland böckerna, så blir du glad!"],
+  ["Ytterdörren","🚪","Knack, knack! Här går vi ut och in. Leta vid dörren, skynda dig, spring!"],
+  ["Köksbordet","🍽️","Här äter vi mat, mums och smask. Kryp under bordet, snabb som en mask!"],
+  ["Spegeln","🪞","Här ser du någon som liknar dig. Vinka och säg: hej på dig!"],
+  ["Teven","📺","Här visas film och barnprogram. Leta bredvid, kom fram, kom fram!"],
+  ["Tandborsten","🪥","Den borstar tänderna morgon och kväll. Leta där den bor, var snäll!"],
+  ["Klädskåpet","👕","Här bor tröjor och byxor fina. Öppna och leta bland dina!"],
+  ["Tvättmaskinen","🧺","Den snurrar runt och tvättar rent. Leta där, det är inte för sent!"],
+  ["Jackorna i hallen","🧥","Här hänger jackor, mössor och vantar. Leta bland dem, runt alla kanter!"],
+  ["Leksakslådan","🧸","Här bor nallar och bilar små. Gräv i lådan och leta då!"],
+  ["Fönstret","🪟","Här tittar du ut på himmel och träd. Leta på brädan, följ med, följ med!"]
+ ],
+ ute:[
+  ["Trädet","🌳","Jag har grenar och står så stilla. Leta vid min stam, du lilla!"],
+  ["Rutschkanan","🛝","Klättra upp och åk sen ner. Leta där, så hittar du mer!"],
+  ["Brevlådan","📬","Hit kommer brev och tidningar med. Lyft på locket och titta ned!"],
+  ["Cykeln","🚲","Två hjul har jag, pling pling pling! Leta hos mig, spring, spring, spring!"],
+  ["Bilen","🚗","Brum, brum! Jag har fyra hjul. Leta vid mig, det blir kul!"],
+  ["Bänken","🪑","Här vilar man benen en liten stund. Kika under, böj dig som en hund!"],
+  ["Stora stenen","🪨","Jag är hård och grå och tung. Leta bakom mig, gammal som ung!"],
+  ["Trappan","🪜","Steg för steg går du upp på mig. Leta vid första steget, säger jag dig!"],
+  ["Sandlådan","🏖️","Här bygger du slott med spade och hink. Gräv lite grann, blink, blink, blink!"],
+  ["Busken","🌿","Jag är låg och full av kvistar. Leta bakom mig, ingen missar!"],
+  ["Blomkrukan","🪴","Här bor en växt i mjuk, brun jord. Leta bredvid, utan ett ord!"],
+  ["Utelampan","💡","Jag lyser när kvällen blir mörk och sen. Leta vid mig, min lilla vän!"]
+ ]
+};
+const JUL={
+ inne:[
+  ["Julgranen","🎄","Jag är grön och klädd i glitter och ljus. Leta under mig, mitt i vårt hus!"],
+  ["Adventsljusstaken","🕯️","Mina ljus räknar ner till jul. Leta bredvid mig, det blir kul!"],
+  ["Pepparkaksburken","🍪","Här bor kakor som luktar kanel. Leta bredvid, men ta ingen del!"]
+ ],
+ ute:[
+  ["Julbelysningen","✨","Jag glittrar i mörkret, blink och glimt. Leta under mig, det går så fint!"]
+ ]
+};
+const JULSYM=[["🎅","tomte"],["⭐","stjärna"],["🎄","gran"],["🦌","ren"],["🕯️","ljus"],["🎁","klapp"],["⛄","snögubbe"],["🔔","klocka"],["🍪","pepparkaka"],["❄️","snöflinga"]];
+const MISSIONS={
+ vanlig:[["🐸","Hoppa som en groda tio gånger."],["🦩","Stå på ett ben och räkna till fem."],["🔴","Hitta något rött och peka på det."],["🤗","Ge varandra en stor kram."],["🦀","Gå som en krabba fram till nästa dörr."],["🎵","Sjung en sång som ni kan."],["🌀","Snurra tre varv och gör en fånig min."],["🦁","Ryt som ett lejon tre gånger."],["🐭","Smyg tyst som en mus i tio steg."],["🔵","Hitta tre saker som är blå."]],
+ jul:[["🎵","Sjung en julsång som ni kan."],["🍪","Gå som en pepparkaksgubbe med stela ben."],["🎅","Säg ho ho ho med din mörkaste röst."],["🦌","Hoppa som en ren tio gånger."],["🤫","Smyg tyst som en tomtenisse i tio steg."],["🔴","Hitta något som är rött som tomtens luva."],["🎁","Låtsas att ni slår in en jättestor klapp."],["❄️","Snurra som en snöflinga i tre varv."],["🤗","Ge varandra en julkram."],["⭐","Sträck er så högt ni kan, som stjärnan i granen."]]
+};
+const T={
+ vanlig:{title:"Familjens skattjakt",story:"",last:"Här ligger skatten! Leta noga.",foundBtn:"Vi hittade skatten!",icon:"🏆",win:"Ni hittade skatten!",winText:"Bra jobbat, skattjägare. Nu är skatten er.",noteWord:"djuret",ask:"Hittade ni lappen? Vilket djur är det?",hide:"Göm skatten här"},
+ jul:{title:"Tomtens skattjakt",story:"Åh nej, tomten har tappat sin säck! Följ ledtrådarna och hjälp nissarna att hitta den.",last:"Här ligger tomtens säck! Leta noga.",foundBtn:"Vi hittade säcken!",icon:"🎁",win:"Ni hittade tomtens säck!",winText:"Bra jobbat, tomtenissar. God jul!",noteWord:"bilden",ask:"Hittade ni lappen? Vilken bild är det?",hide:"Göm tomtens säck här"}
+};
+const ANIMALS=[["🦊","räv"],["🐻","björn"],["🐰","kanin"],["🦉","uggla"],["🐸","groda"],["🐱","katt"],["🐶","hund"],["🐷","gris"],["🦁","lejon"],["🐢","sköldpadda"]];
+const $=id=>document.getElementById(id);
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const KEY="skattjakt-v1";
+let S={screen:"setup",theme:"vanlig",place:"inne",count:6,notes:true,missions:true,kids:2,sound:true,names:["","","",""],stops:[],i:0,phase:"clue"};
+const th=()=>T[S.theme]||T.vanlig;
+const syms=()=>S.theme==="jul"?JULSYM:ANIMALS;
+const allPlaces=()=>PLACES[S.place].concat(S.theme==="jul"?JUL[S.place]:[]);
+
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.screen&&Array.isArray(s.stops))S=Object.assign(S,s)}catch(e){}}
+
+function seg(id,get,set){
+  const el=$(id);
+  const paint=()=>el.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v===String(get()))));
+  el.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;set(b.dataset.v);paint();paintSetup();save()});
+  paint();return paint;
+}
+function paintNames(){
+  const box=$("names");box.textContent="";
+  for(let k=0;k<S.kids;k++){
+    const inp=document.createElement("input");inp.type="text";inp.id="name"+(k+1);inp.maxLength=14;inp.autocomplete="off";
+    inp.placeholder="Barn "+(k+1);inp.setAttribute("aria-label","Namn på barn "+(k+1));inp.value=S.names[k]||"";
+    inp.addEventListener("input",e=>{S.names[k]=e.target.value;save()});
+    box.append(inp);
+  }
+  $("kidsHint").textContent=S.kids>1?"Barnen turas om att leda vägen. Namnen är frivilliga.":"Namnet är frivilligt.";
+}
+/* Ljud: allt skapas med Web Audio, så appen behöver inga ljudfiler. */
+let AC=null;
+function audio(){
+  if(!S.sound)return null;
+  try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();if(AC.state==="suspended")AC.resume();return AC}catch(e){return null}
+}
+function note(ac,midi,at,dur,type,vol){
+  const o=ac.createOscillator(),g=ac.createGain();
+  o.type=type;o.frequency.value=440*Math.pow(2,(midi-69)/12);
+  g.gain.setValueAtTime(0.0001,at);g.gain.exponentialRampToValueAtTime(vol,at+0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001,at+dur);
+  o.connect(g);g.connect(ac.destination);o.start(at);o.stop(at+dur+0.05);
+}
+function ding(){const ac=audio();if(!ac)return;const t=ac.currentTime+0.02;note(ac,79,t,0.18,"triangle",0.25);note(ac,84,t+0.12,0.35,"triangle",0.25)}
+function hurra(){
+  const ac=audio();if(!ac)return;
+  const b=0.2;let t=ac.currentTime+0.05;
+  // Egen liten hurrafanfar: [ton, antal slag]
+  const tune=[[67,1],[67,1],[67,1],[72,2],[76,2],[79,3],[0,1],[77,1],[76,1],[74,2],[79,2],[76,1],[79,1],[84,4],[0,1],
+              [84,1],[83,1],[81,1],[79,2],[81,1],[83,1],[84,2],[79,2],[76,2],[84,5]];
+  tune.forEach(([m,n])=>{
+    if(m){note(ac,m,t,n*b*0.95,"square",0.12);note(ac,m-12,t,n*b*0.95,"triangle",0.2);if(n>=3)note(ac,m-8,t,n*b*0.95,"triangle",0.12)}
+    t+=n*b;
+  });
+}
+function paintSetup(){
+  document.body.classList.toggle("jul",S.theme==="jul");
+  $("title").textContent=th().title;
+  $("themeColor").setAttribute("content",S.theme==="jul"?"#8E1F2F":"#0E4D5C");
+  $("notesHint").textContent=S.notes
+    ?(S.theme==="jul"?"Du gömmer en lapp med en julbild på varje plats. Barnen trycker på rätt bild för att få nästa ledtråd.":"Du gömmer en lapp med ett djur på varje plats. Barnen trycker på rätt djur för att få nästa ledtråd.")
+    :"Inga förberedelser utom själva skatten. Barnen trycker på en knapp när de hittat platsen.";
+}
+function makeHunt(){
+  const extra=S.theme==="jul"?shuffle(JUL[S.place]).slice(0,2):[];
+  const pool=shuffle(extra.concat(shuffle(PLACES[S.place])).slice(0,S.count));
+  const an=shuffle(syms()),ms=shuffle(MISSIONS[S.theme]||MISSIONS.vanlig);
+  S.stops=pool.map((p,k)=>({name:p[0],pic:p[1],riddle:p[2],animal:an[k%an.length],
+    mission:S.missions&&k%2===0&&k<pool.length-1?ms[(k/2)%ms.length]:null}));
+  S.i=0;S.phase="clue";
+}
+function swapStop(k){
+  const used=new Set(S.stops.map(s=>s.name));
+  const free=allPlaces().filter(p=>!used.has(p[0]));
+  if(!free.length)return;
+  const p=free[Math.floor(Math.random()*free.length)];
+  S.stops[k]=Object.assign(S.stops[k],{name:p[0],pic:p[1],riddle:p[2]});
+  paintPrep();save();
+}
+function paintPrep(){
+  const n=S.stops.length;
+  $("prepText").textContent=S.notes
+    ?"Rita "+th().noteWord+" på en lapp och göm lappen på platsen. Lägg skatten på sista platsen. Den första ledtråden visas här på skärmen."
+    :"Göm skatten på sista platsen. Den första ledtråden visas här på skärmen.";
+  const ol=$("stops");ol.textContent="";
+  S.stops.forEach((s,k)=>{
+    const last=k===n-1;
+    const li=document.createElement("li");if(last)li.className="treasure";
+    const num=document.createElement("span");num.className="num";num.textContent=k+1;
+    const mid=document.createElement("div");
+    const w=document.createElement("div");w.className="where";w.textContent=s.pic+" "+s.name;
+    const d=document.createElement("div");d.className="what";
+    d.textContent=last?th().hide:(S.notes?"Lapp med "+s.animal[0]+" "+s.animal[1]:"Barnen springer hit")+(s.mission?", sedan ett uppdrag":"");
+    mid.append(w,d);
+    const b=document.createElement("button");b.type="button";b.className="small";b.textContent="Byt";
+    b.setAttribute("aria-label","Byt ut "+s.name+" mot en annan plats");
+    b.addEventListener("click",()=>swapStop(k));
+    li.append(num,mid,b);ol.append(li);
+  });
+}
+function leader(){
+  if(S.kids<2)return"";
+  const k=S.i%S.kids;
+  return((S.names[k]||"").trim()||"Barn "+(k+1))+" leder vägen";
+}
+function paintHunt(){
+  const n=S.stops.length,s=S.stops[S.i],last=S.i===n-1;
+  const tr=$("trail");tr.textContent="";
+  for(let k=0;k<n;k++){const sp=document.createElement("span");sp.className=k<S.i?"done":k===S.i?"now":"";tr.append(sp)}
+  $("turn").textContent=leader();$("turn").hidden=!leader();
+  const onMission=S.phase==="mission"&&s.mission;
+  $("story").textContent=th().story;$("story").hidden=!(th().story&&S.i===0&&!onMission);
+  $("missionCard").hidden=!onMission;$("clueCard").hidden=!!onMission;$("answerCard").hidden=!!onMission;
+  if(onMission){$("missionIcon").textContent=s.mission[0];$("missionText").textContent=S.kids<2?s.mission[1].replace("Ge varandra en","Ge en vuxen en"):s.mission[1];return}
+  $("clueNo").textContent="Ledtråd "+(S.i+1)+" av "+n;
+  $("riddle").textContent=s.riddle;
+  $("pic").textContent=s.pic;$("pic").hidden=true;$("showPic").hidden=false;
+  $("msg").textContent="";
+  const grid=$("animals"),found=$("found");grid.textContent="";
+  if(last){
+    $("question").textContent=th().last;
+    grid.hidden=true;found.hidden=false;found.textContent=th().foundBtn;
+  }else if(S.notes){
+    $("question").textContent=th().ask;
+    grid.hidden=false;found.hidden=true;
+    const others=shuffle(syms().filter(a=>a[0]!==s.animal[0])).slice(0,5);
+    shuffle([s.animal,...others]).forEach(a=>{
+      const b=document.createElement("button");b.type="button";b.textContent=a[0];b.setAttribute("aria-label",a[1]);
+      b.addEventListener("click",()=>{
+        if(a[0]===s.animal[0]){ding();foundStop()}
+        else{b.classList.remove("wrong");void b.offsetWidth;b.classList.add("wrong");$("msg").textContent="Inte "+a[1]+". Titta på lappen igen!"}
+      });
+      grid.append(b);
+    });
+  }else{
+    $("question").textContent="Spring dit och leta!";
+    grid.hidden=true;found.hidden=false;found.textContent="Vi hittade platsen!";
+  }
+}
+function foundStop(){
+  const s=S.stops[S.i];
+  if(S.i<S.stops.length-1&&s.mission){S.phase="mission";save();paintHunt();window.scrollTo(0,0);return}
+  next();
+}
+function next(){
+  S.phase="clue";
+  if(S.i>=S.stops.length-1){show("win");confetti();hurra();return}
+  S.i++;save();paintHunt();
+  $("clueCard").classList.remove("pop");void $("clueCard").offsetWidth;$("clueCard").classList.add("pop");
+  window.scrollTo(0,0);
+}
+function show(name){
+  S.screen=name;
+  ["setup","prep","hunt","win"].forEach(id=>$(id).hidden=id!==name);
+  $("restart").hidden=name==="setup";
+  if(name==="prep")paintPrep();
+  if(name==="hunt")paintHunt();
+  if(name==="win"){$("replay").hidden=!S.sound;$("winIcon").textContent=th().icon;$("winTitle").textContent=th().win;$("winText").textContent=th().winText}
+  save();window.scrollTo(0,0);
+}
+function confetti(){
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches)return;
+  const c=$("confetti"),x=c.getContext("2d");c.hidden=false;
+  const W=c.width=innerWidth,H=c.height=innerHeight,cols=S.theme==="jul"?["#FFC83D","#FFFFFF","#2FA36B","#FFD9D3"]:["#FFC83D","#FF6B57","#FFF4D6","#7ED6C9"];
+  const ps=Array.from({length:120},()=>({x:Math.random()*W,y:-Math.random()*H,r:4+Math.random()*6,v:2+Math.random()*4,s:Math.random()*6,c:cols[Math.floor(Math.random()*4)]}));
+  let t=0;(function f(){x.clearRect(0,0,W,H);ps.forEach(p=>{p.y+=p.v;p.x+=Math.sin((t+p.s*20)/15);x.fillStyle=p.c;x.fillRect(p.x,p.y,p.r,p.r*1.6)});
+    if(++t<260)requestAnimationFrame(f);else{x.clearRect(0,0,W,H);c.hidden=true}})();
+}
+
+if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{})}
+load();
+seg("theme",()=>S.theme,v=>S.theme=v);
+seg("missions",()=>S.missions?1:0,v=>S.missions=v==="1");
+const p1=seg("place",()=>S.place,v=>S.place=v);
+const p2=seg("count",()=>S.count,v=>S.count=+v);
+const p3=seg("notes",()=>S.notes?1:0,v=>S.notes=v==="1");
+while(S.names.length<4)S.names.push("");
+seg("kids",()=>S.kids,v=>{S.kids=+v;paintNames()});
+seg("sound",()=>S.sound?1:0,v=>{S.sound=v==="1";if(S.sound)ding()});
+paintNames();
+$("replay").addEventListener("click",hurra);
+$("make").addEventListener("click",()=>{makeHunt();show("prep")});
+$("reshuffle").addEventListener("click",()=>{makeHunt();paintPrep();save()});
+$("start").addEventListener("click",()=>{audio();S.i=0;S.phase="clue";show("hunt")});
+$("showPic").addEventListener("click",()=>{$("pic").hidden=false;$("showPic").hidden=true});
+$("found").addEventListener("click",foundStop);
+$("missionDone").addEventListener("click",next);
+$("again").addEventListener("click",()=>show("setup"));
+$("restart").addEventListener("click",()=>show("setup"));
+paintSetup();
+show(S.stops.length||S.screen==="setup"?S.screen:"setup");
+</script>
+</body>
+</html>

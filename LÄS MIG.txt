@@ -1,0 +1,14 @@
+Familjens skattjakt som webapp
+
+Mappen innehåller allt som behövs. Den måste ligga på en webbadress som börjar med https
+för att kunna installeras på telefonen.
+
+1. Lägg upp hela mappen hos en webbtjänst för statiska sidor, till exempel
+   GitHub Pages, Netlify eller Cloudflare Pages. Alla filer ska ligga i samma mapp.
+2. Öppna adressen på telefonen.
+   iPhone: öppna i Safari, tryck på Dela och välj "Lägg till på hemskärmen".
+   Android: öppna i Chrome, tryck på menyn och välj "Installera app" eller "Lägg till på startskärmen".
+3. Starta appen från ikonen. Efter första besöket fungerar den även utan nät.
+
+När du ändrar något i filerna: höj versionen i sw.js (skattjakt-v1 till skattjakt-v2),
+annars visar telefonerna den gamla versionen.
