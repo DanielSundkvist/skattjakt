@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Röstverktyg för Familjens lekar</title>
+<style>
+:root{--sea:#0E4D5C;--sand:#FFF4D6;--sun:#FFC83D;--ink:#12333B;--mist:#CFE6E4;--coral:#D9412E}
+*{box-sizing:border-box}
+body{margin:0;background:var(--sea);color:var(--ink);font:17px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:720px;margin:0 auto;padding:24px 16px 48px;display:flex;flex-direction:column;gap:16px}
+h1{color:var(--sand);margin:0;font-size:28px}
+h2{margin:0;font-size:20px}
+.card{background:var(--sand);border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:12px}
+label{font-weight:700}
+input,textarea,select{font:inherit;padding:10px 12px;border-radius:10px;border:2px solid var(--mist);width:100%;background:#fff;color:var(--ink)}
+textarea{min-height:90px;resize:vertical}
+button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:10px 16px;cursor:pointer;background:#fff;color:var(--ink);box-shadow:inset 0 0 0 2px var(--mist)}
+button.primary{background:var(--sun);box-shadow:none}
+button:disabled{opacity:.5;cursor:default}
+.hint{font-size:15px;opacity:.8;margin:0}
+.err{color:var(--coral);font-weight:700;white-space:pre-wrap;margin:0}
+.voices{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.voice{background:#fff;border-radius:12px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.voice b{display:block}
+.voice small{opacity:.7}
+.voice.playing{outline:3px solid var(--sun)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row>*{flex:1 1 180px}
+code{background:#fff;padding:1px 6px;border-radius:6px}
+</style>
+</head>
+<body>
+<main>
+  <h1>Röstverktyg för Familjens lekar</h1>
+
+  <section class="card">
+    <h2>1. Klistra in din nyckel</h2>
+    <label for="key">API-nyckel från Google Cloud</label>
+    <input id="key" type="password" autocomplete="off" placeholder="AIza…">
+    <p class="hint">Nyckeln används bara i den här fliken och skickas bara till Google. Den sparas inte någonstans och försvinner när du stänger sidan.</p>
+    <button class="primary" id="load" type="button">Hämta svenska röster</button>
+    <p class="err" id="err1" role="alert"></p>
+  </section>
+
+  <section class="card">
+    <h2>2. Provlyssna</h2>
+    <label for="text">Text att läsa upp</label>
+    <textarea id="text">Här är det kallt och här bor mjölken. Öppna dörren och kika in! Vad lyste på himlen när Jesus hade fötts? Är det en regnbåge, en stor stjärna, eller en blixt?</textarea>
+    <div class="row">
+      <div>
+        <label for="rate">Tempo</label>
+        <select id="rate">
+          <option value="1">Normalt</option>
+          <option value="0.9">Lite långsammare</option>
+          <option value="0.8">Långsamt</option>
+        </select>
+      </div>
+      <div>
+        <label for="kind">Visa</label>
+        <select id="kind">
+          <option value="chirp">De naturligaste rösterna (Chirp 3 HD)</option>
+          <option value="all">Alla svenska röster</option>
+        </select>
+      </div>
+    </div>
+    <p class="hint" id="count">Hämta rösterna i steg 1 först.</p>
+    <div class="voices" id="voices"></div>
+    <p class="err" id="err2" role="alert"></p>
+  </section>
+
+  <section class="card">
+    <h2>3. Berätta vilken du valde</h2>
+    <p style="margin:0">När du hittat en röst ni gillar, skriv dess namn i chatten, till exempel <code id="picked">sv-SE-Chirp3-HD-…</code>, och vilket tempo du valde. Skicka inte nyckeln.</p>
+    <p class="hint">Varje provlyssning räknas mot gratisgränsen på en miljon tecken i månaden. Texten ovan är ungefär 160 tecken.</p>
+  </section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const API="https://texttospeech.googleapis.com/v1/";
+let all=[],player=null;
+function key(){return $("key").value.trim()}
+async function call(path,body){
+  const res=await fetch(API+path+(path.includes("?")?"&":"?")+"key="+encodeURIComponent(key()),body?{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}:undefined);
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok)throw new Error((data.error&&data.error.message)||("Fel "+res.status));
+  return data;
+}
+function explain(e){
+  const m=String(e.message||e);
+  if(/Failed to fetch|NetworkError/i.test(m))return"Kunde inte nå Google. Kontrollera nätet, och att ingen annonsblockerare stoppar sidan.\n("+m+")";
+  if(/API key not valid/i.test(m))return"Nyckeln godkändes inte. Kontrollera att du kopierade hela nyckeln.\n("+m+")";
+  if(/referer|blocked/i.test(m))return"Nyckeln är begränsad så att den här sidan inte får använda den. Kontrollera nyckelns begränsningar i Google Cloud.\n("+m+")";
+  if(/billing/i.test(m))return"Google kräver att betalning är aktiverad på kontot.\n("+m+")";
+  return m;
+}
+function paint(){
+  const chirp=$("kind").value==="chirp";
+  const list=all.filter(v=>!chirp||/Chirp3-HD/i.test(v.name)).sort((a,b)=>a.name.localeCompare(b.name));
+  $("count").textContent=all.length?list.length+" röster. Tryck på Lyssna för att höra texten ovan.":"Hämta rösterna i steg 1 först.";
+  const box=$("voices");box.textContent="";
+  list.forEach(v=>{
+    const d=document.createElement("div"),t=document.createElement("div"),b=document.createElement("b"),s=document.createElement("small"),btn=document.createElement("button");
+    d.className="voice";b.textContent=v.name.replace(/^sv-SE-/,"").replace(/^Chirp3-HD-/,"");
+    s.textContent=(v.ssmlGender==="FEMALE"?"Kvinna":v.ssmlGender==="MALE"?"Man":"")+" · "+v.name;
+    t.append(b,s);btn.type="button";btn.textContent="Lyssna";
+    btn.addEventListener("click",async()=>{
+      $("err2").textContent="";btn.disabled=true;btn.textContent="Hämtar…";
+      try{
+        const rate=parseFloat($("rate").value),cfg={audioEncoding:"MP3"};if(rate!==1)cfg.speakingRate=rate;
+        const r=await call("text:synthesize",{input:{text:$("text").value},voice:{languageCode:"sv-SE",name:v.name},audioConfig:cfg});
+        if(player)player.pause();
+        document.querySelectorAll(".voice.playing").forEach(x=>x.classList.remove("playing"));
+        player=new Audio("data:audio/mpeg;base64,"+r.audioContent);d.classList.add("playing");$("picked").textContent=v.name;
+        player.addEventListener("ended",()=>d.classList.remove("playing"));await player.play();
+      }catch(e){$("err2").textContent=explain(e)}
+      btn.disabled=false;btn.textContent="Lyssna";
+    });
+    d.append(t,btn);box.append(d);
+  });
+}
+$("load").addEventListener("click",async()=>{
+  $("err1").textContent="";
+  if(!key()){$("err1").textContent="Klistra in nyckeln först.";return}
+  $("load").disabled=true;
+  try{const r=await call("voices?languageCode=sv-SE");all=r.voices||[];if(!all.length)$("err1").textContent="Google svarade, men listan med svenska röster var tom.";paint()}
+  catch(e){$("err1").textContent=explain(e)}
+  $("load").disabled=false;
+});
+$("kind").addEventListener("change",paint);
+</script>
+</body>
+</html>
