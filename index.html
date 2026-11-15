@@ -138,8 +138,8 @@ canvas#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:non
     <div class="field">
       <span class="label">Uppläsning för barn som inte läser</span>
       <div class="seg" id="auto">
-        <button type="button" data-v="1" aria-pressed="true">Läs upp automatiskt</button>
-        <button type="button" data-v="0" aria-pressed="false">Bara på knapp</button>
+        <button type="button" data-v="0" aria-pressed="true">Bara på knapp</button>
+        <button type="button" data-v="1" aria-pressed="false">Läs upp automatiskt</button>
       </div>
       <span class="hint" id="autoHint"></span>
     </div>
@@ -371,7 +371,7 @@ const ANIMALS=[["🦊","räv"],["🐻","björn"],["🐰","kanin"],["🦉","uggla
 const $=id=>document.getElementById(id);
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const KEY="skattjakt-v1";
-let S={screen:"home",game:"hunt",autoRead:true,char:null,theme:"vanlig",place:"inne",count:6,notes:true,missions:true,kids:2,equal:true,per:3,sound:true,names:["","","",""],voice:"",stops:[],i:0,phase:"clue",chest:{},last:null,lastNew:true,back:"setup",offset:0,nextStart:0,seen:{}};
+let S={screen:"home",game:"hunt",readAuto:false,char:null,theme:"vanlig",place:"inne",count:6,notes:true,missions:true,kids:2,equal:true,per:3,sound:true,names:["","","",""],voice:"",stops:[],i:0,phase:"clue",chest:{},last:null,lastNew:true,back:"setup",offset:0,nextStart:0,seen:{}};
 const th=()=>T[S.theme]||T.vanlig;
 const syms=()=>S.theme==="jul"?JULSYM:ANIMALS;
 const allPlaces=()=>PLACES[S.place].concat(S.theme==="jul"?JUL[S.place]:[]);
@@ -437,7 +437,7 @@ function speak(text){
     speechSynthesis.speak(u);
   }catch(e){}
 }
-function say(text){if(S.autoRead!==false)speak(text)}
+function say(text){if(S.readAuto===true)speak(text)}
 /* Knapptext med en stor bild framför, så att barn som inte läser hittar rätt. */
 function lab(btn,ico,text){btn.textContent="";const i=document.createElement("span");i.className="ico";i.textContent=ico;btn.append(i,text)}
 function hush(){if(canSpeak){try{speechSynthesis.cancel()}catch(e){}}}
@@ -742,8 +742,8 @@ seg("mode",()=>S.equal?1:0,v=>{S.equal=v==="1";paintCount()});
 const p3=seg("notes",()=>S.notes?1:0,v=>S.notes=v==="1");
 while(S.names.length<4)S.names.push("");
 seg("kids",()=>S.kids,v=>{S.kids=+v;paintNames();paintCount()});
-seg("auto",()=>S.autoRead!==false?1:0,v=>{S.autoRead=v==="1";paintAuto()});
-function paintAuto(){$("autoHint").textContent=!canSpeak?"Den här telefonen eller webbläsaren saknar stöd för uppläsning.":S.autoRead!==false?"Gåtor, uppdrag och vems tur det är läses upp direkt när de visas.":"Barnen trycker på högtalaren för att få texten uppläst.";}
+seg("auto",()=>S.readAuto===true?1:0,v=>{S.readAuto=v==="1";paintAuto()});
+function paintAuto(){$("autoHint").textContent=!canSpeak?"Den här telefonen eller webbläsaren saknar stöd för uppläsning.":S.readAuto===true?"Gåtor, uppdrag och vems tur det är läses upp direkt när de visas.":"Barnen trycker på högtalaren för att få texten uppläst.";}
 paintAuto();
 $("goHunt").addEventListener("click",()=>{S.game="hunt";show("setup")});
 $("goChar").addEventListener("click",()=>{audio();startChar()});
