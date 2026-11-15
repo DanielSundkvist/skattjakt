@@ -858,6 +858,52 @@ function paintVoices(){
 let CLIPS=new Set(),clipVoice="",talkTok=0,lastUtter=null;
 const player=typeof Audio!=="undefined"?new Audio():null;
 const canTalk=()=>canSpeak||CLIPS.size>0;
+/* Klippen hämtas i förväg, så att rösten startar direkt när någon trycker på Lyssna.
+   MEM håller de klipp som snart behövs i minnet. AUDIO_CACHE sparar alla klipp på telefonen. */
+const AUDIO_CACHE="skattjakt-audio",MEM=new Map();let clipStamp="";
+const clipUrl=id=>"audio/"+id+".mp3";
+async function clipBlob(id){
+  let c=null;try{c=await caches.open(AUDIO_CACHE)}catch(e){}
+  const key=clipUrl(id)+"?v="+clipStamp;
+  let r=c?await c.match(key):null;
+  if(!r){
+    r=await fetch(clipUrl(id));if(!r.ok)throw new Error("saknas");
+    if(c){try{await c.put(key,r.clone())}catch(e){}}
+  }
+  return r.blob();
+}
+function prefetch(text){
+  if(!CLIPS.size)return;
+  String(text||"").split("|").forEach(x=>{
+    x=x.trim();if(!x||x[0]==="~")return;
+    const id=speechId(x);if(!CLIPS.has(id)||MEM.has(id))return;
+    MEM.set(id,"");
+    clipBlob(id).then(b=>{
+      MEM.set(id,URL.createObjectURL(new Blob([b],{type:"audio/mpeg"})));
+      // Håll minnet litet: släpp de äldsta klippen.
+      while(MEM.size>250){const old=MEM.keys().next().value;const u=MEM.get(old);MEM.delete(old);if(u){try{URL.revokeObjectURL(u)}catch(e){}}}
+    }).catch(()=>MEM.delete(id));
+  });
+}
+/* Sparar alla klipp på telefonen i bakgrunden, så att rösten fungerar snabbt och utan nät. */
+async function cacheAllClips(){
+  try{
+    if(!("caches" in window))return;
+    const con=navigator.connection;if(con&&con.saveData)return;
+    let was="";try{was=localStorage.getItem("skattjakt-clips")||""}catch(e){}
+    if(was===clipStamp)return;
+    if(was)await caches.delete(AUDIO_CACHE);
+    const c=await caches.open(AUDIO_CACHE),ids=[...CLIPS];let at=0,fail=0;
+    const worker=async()=>{
+      while(at<ids.length&&fail<20){
+        const key=clipUrl(ids[at++])+"?v="+clipStamp;
+        try{if(!(await c.match(key))){const r=await fetch(key.split("?")[0]);if(r.ok)await c.put(key,r);else fail++}}catch(e){fail++}
+      }
+    };
+    await Promise.all([worker(),worker(),worker()]);
+    if(!fail){try{localStorage.setItem("skattjakt-clips",clipStamp)}catch(e){}}
+  }catch(e){}
+}
 function speechId(t){
   let h=0x811c9dc5;
   for(let i=0;i<t.length;i++){h^=t.charCodeAt(i);h=Math.imul(h,0x01000193)>>>0}
@@ -887,12 +933,12 @@ function speak(text){
     if(!dyn&&player&&CLIPS.has(id)){
       let moved=false;const fall=()=>{if(!moved&&tok===talkTok){moved=true;tts(s,next)}};
       player.onended=()=>{if(!moved){moved=true;next()}};player.onerror=fall;
-      try{player.src="audio/"+id+".mp3";const p=player.play();if(p&&p.catch)p.catch(fall)}catch(e){fall()}
+      try{player.src=MEM.get(id)||clipUrl(id);const p=player.play();if(p&&p.catch)p.catch(fall)}catch(e){fall()}
     }else tts(s,next);
   };
   next();
 }
-function say(text){if(S.readAuto===true)speak(text)}
+function say(text){prefetch(text);if(S.readAuto===true)speak(text)}
 function hush(){
   talkTok++;
   if(player){try{player.onended=null;player.onerror=null;if(!player.paused)player.pause()}catch(e){}}
@@ -927,7 +973,9 @@ function loadClips(){
   try{
     fetch("audio/clips.json",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{
       if(!j||!Array.isArray(j.ids))return;
-      CLIPS=new Set(j.ids);clipVoice=j.voice||"";paintAuto();
+      CLIPS=new Set(j.ids);clipVoice=j.voice||"";clipStamp=String(j.created||"").replace(/\D/g,"")||"1";paintAuto();
+      prefetch("Vilken plats står ni vid? Tryck på rätt bild.|Vart ska ni springa?|Sista ledtråden! Nu letar ni efter skatten.|Din tur! Ta telefonen. Alla andra blundar.|Nu får alla titta! Vilket djur är det?|Titta noga på bilderna och kom ihåg dem.|Nu försvinner en bild.|En bild är borta. Vad fattas?|Musiken stannade!|Rätt!|Din tur!|Uppdrag!|Stopp!|Bra hittat!|Tiden tog slut!|Rätt plats!|Rätt lapp!|Nu är det bara skatten kvar!|Titta på lappen igen!|Lyssna på gåtan en gång till!|Inte riktigt. Försök en gång till!|Den var aldrig med. Försök igen!|Hej! Nu börjar leken. Är ni redo?");
+      setTimeout(cacheAllClips,4000);
       if(!canSpeak)show(S.screen);
     }).catch(()=>{});
   }catch(e){}
@@ -1122,6 +1170,9 @@ function paintHunt(){
   // Läs upp det som just visades: frågan om platsen, eller hela ledtråden.
   if(!last&&!S.notes&&S.arrived)say($("question").textContent);
   else say(clueSpeech(s,last));
+  // Hämta i förväg det som kan läsas upp härnäst: uppdraget och nästa gåta.
+  if(s.mission)prefetch(s.mission[1]+"|"+s.mission[1].replace("Ge varandra en","Ge en vuxen en"));
+  if(S.stops[S.i+1])prefetch(riddleParts(S.stops[S.i+1].riddle).join("|"));
 }
 function clueSpeech(s,last){
   const parts=[];
@@ -1167,6 +1218,7 @@ function paintChar(){
     speech="Rätt!|Det var "+a[2]+".";
   }
   S.charSpeech=speech;if(speech)say(speech);
+  prefetch("Det var "+a[2]+".");
 }
 function charMain(){
   const C=S.char;
@@ -1197,6 +1249,7 @@ function startColor(){
   const race=cRace(),total=race?7:Math.ceil(6/S.kids)*S.kids,order=shuffle(HUES.map((_,k)=>k));
   S.color={list:order.slice(0,total),spare:order.slice(total),i:0,phase:"show",total,race,time:S.ctime||0,stars:0,score:[0,0,0,0],winner:-1,offset:(S.nextStart||0)%Math.max(1,S.kids)};
   if(!race)S.nextStart=S.color.offset+1;
+  prefetch("Ni har "+(S.ctime||20)+" sekunder.|Dags att städa! Hinner ni bära tillbaka alla saker innan musiken stannar?|Dags att städa! Hinner ni bära tillbaka alla saker innan tiden tar slut?");
   S.game="color";show("color");
 }
 function stopColorTimer(){if(colorTick){clearInterval(colorTick);colorTick=null}}
@@ -1374,6 +1427,8 @@ function paintQuiz(){
     if(Q.i>=Q.total-1)lab($("qNext"),"🎉","Klart!");else lab($("qNext"),"➡️","Nästa fråga");
   }
   say(quizSpeech());
+  prefetch(q[4]);
+  if(Q.i+1<Q.total){const n=QUIZ[Q.theme].q[Q.level][Q.list[Q.i+1]];prefetch([n[0],plain(n[1]),plain(n[2]),plain(n[3])].join("|"))}
 }
 function quizNext(){
   const Q=S.quiz;
@@ -1446,6 +1501,7 @@ function paintMiss(){
     if(M.i>=M.total-1)lab($("mMain"),"🎉","Klart!");else lab($("mMain"),"➡️","Nästa");
   }
   if(M.phase!=="ready")say(missSpeech());
+  if(M.gone>=0)prefetch("Det var "+THINGS[M.gone][1]+" som fattades.");
 }
 function missMain(){
   const M=S.miss;
@@ -1489,7 +1545,7 @@ function clearDance(){
   if(freezeTick){clearInterval(freezeTick);freezeTick=null}
   stopMusic();
 }
-function startDance(){S.dance={i:0,phase:"ready",total:6,pose:0,race:false,out:[false,false,false,false]};S.game="dance";show("dance")}
+function startDance(){prefetch(POSES.map(p=>"Stå blickstilla som "+p[1]+"!").join("|"));S.dance={i:0,phase:"ready",total:6,pose:0,race:false,out:[false,false,false,false]};S.game="dance";show("dance")}
 const dLeft=()=>{const D=S.dance,r=[];for(let j=0;j<S.kids;j++)if(!D.out[j])r.push(j);return r};
 function paintDance(){
   hush();
