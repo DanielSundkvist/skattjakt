@@ -1154,6 +1154,13 @@ function quizNext(){
 /* ---------- Vad fattas? ---------- */
 const THINGS=[["🍎","äpplet"],["🍌","bananen"],["🚗","bilen"],["⚽","bollen"],["🐶","hunden"],["🐱","katten"],["🌳","trädet"],["🏠","huset"],["⭐","stjärnan"],["🎈","ballongen"],["🧸","nallen"],["🚲","cykeln"],["🍦","glassen"],["🐟","fisken"],["🌈","regnbågen"],["☂️","paraplyet"],["🎁","paketet"],["🔑","nyckeln"],["🐸","grodan"],["🦋","fjärilen"],["🍓","jordgubben"],["🥕","moroten"],["🚀","raketen"],["⏰","klockan"]];
 const MLEV={1:{n:4,cols:2,mix:false,hint:"Fyra bilder. Platsen där bilden försvann syns som en tom ruta."},2:{n:6,cols:3,mix:false,hint:"Sex bilder. Platsen där bilden försvann syns som en tom ruta."},3:{n:8,cols:4,mix:true,hint:"Åtta bilder, och de byter plats när en försvinner."}};
+let missTimer=null;
+function clearMiss(){if(missTimer){clearTimeout(missTimer);missTimer=null}}
+/* Bilderna täcks över en stund, så att ingen ser vilken som tas bort. */
+function missCover(){
+  const M=S.miss;clearMiss();M.phase="cover";save();paintMiss();
+  missTimer=setTimeout(()=>{missTimer=null;if(S.screen!=="miss"||S.miss.phase!=="cover")return;S.miss.phase="guess";save();paintMiss()},2500);
+}
 function startMiss(){
   S.miss={level:S.mlevel||1,i:0,total:Math.ceil(6/S.kids)*S.kids,phase:"ready",items:[],shown:[],gone:-1,opts:[],stars:0,tries:0,offset:(S.nextStart||0)%Math.max(1,S.kids)};
   S.nextStart=S.miss.offset+1;S.game="miss";show("miss");
@@ -1169,6 +1176,7 @@ function missDeal(){
 function missSpeech(){
   const M=S.miss,k=(M.i+M.offset)%Math.max(1,S.kids);
   if(M.phase==="look")return(S.kids>1?kidName(k)+", din tur! ":"")+"Titta noga på bilderna och kom ihåg dem.";
+  if(M.phase==="cover")return"Nu försvinner en bild.";
   if(M.phase==="guess")return"En bild är borta. Vad fattas?";
   if(M.phase==="right")return"Rätt! Det var "+THINGS[M.gone][1]+" som fattades.";
   return"Titta noga på bilderna. Sedan försvinner en. Vilken?";
@@ -1181,7 +1189,7 @@ function paintMiss(){
   $("mTurn").hidden=S.kids<2||M.phase==="ready";$("mName").textContent=kidName(k);$("mTurn").dataset.kid=String(k);
   const grid=$("mGrid"),opts=$("mOpts");grid.textContent="";opts.textContent="";$("mMsg").textContent="";
   $("mLevelField").hidden=M.phase!=="ready";grid.hidden=!(M.phase==="look"||M.phase==="guess");opts.hidden=M.phase!=="guess";
-  $("mStars").hidden=M.phase!=="right";$("mMain").hidden=M.phase==="guess";$("mMsg").hidden=M.phase!=="guess";$("mListen").hidden=!canSpeak;
+  $("mStars").hidden=!(M.phase==="right"||M.phase==="cover");$("mMain").hidden=M.phase==="guess"||M.phase==="cover";$("mMsg").hidden=M.phase!=="guess";$("mListen").hidden=!canSpeak;
   const cell=v=>{const c=document.createElement("span");if(v<0){c.className="hole";c.textContent="❔"}else c.textContent=THINGS[v][0];grid.append(c)};
   grid.style.gridTemplateColumns="repeat("+L.cols+",1fr)";
   if(M.phase==="ready"){
@@ -1190,6 +1198,8 @@ function paintMiss(){
   }else if(M.phase==="look"){
     $("mTitle").textContent="Titta noga!";$("mText").textContent="Kom ihåg alla bilder. Tryck när du är klar.";
     M.items.forEach(cell);lab($("mMain"),"🙈","Göm en bild");
+  }else if(M.phase==="cover"){
+    $("mStars").textContent="🙈";$("mTitle").textContent="Nu försvinner en bild";$("mText").textContent="Vänta lite …";
   }else if(M.phase==="guess"){
     $("mTitle").textContent="Vad fattas?";$("mText").textContent="En bild är borta. Vilken var det?";
     M.shown.forEach(cell);
@@ -1211,7 +1221,7 @@ function paintMiss(){
 function missMain(){
   const M=S.miss;
   if(M.phase==="ready"){M.level=S.mlevel||1;M.i=0;M.stars=0;missDeal()}
-  else if(M.phase==="look")M.phase="guess";
+  else if(M.phase==="look"){missCover();window.scrollTo(0,0);return}
   else if(M.phase==="right"){
     if(M.i>=M.total-1){hush();award("lek");show("win");confetti();hurra();return}
     M.i++;missDeal();
@@ -1337,13 +1347,14 @@ function show(name){
   S.screen=name;
   if(name!=="dance")clearDance();
   if(name!=="color")stopColorTimer();
+  if(name!=="miss")clearMiss();
   ["home","setup","prep","hunt","char","csetup","color","dance","qsetup","quiz","miss","win","chest"].forEach(id=>$(id).hidden=id!==name);
   $("restart").hidden=name==="home"||name==="chest";
   $("openChest").hidden=["hunt","char","color","dance","quiz","miss","chest"].includes(name);
   if(name==="char")paintChar();
   if(name==="color")paintColor();
   if(name==="csetup")paintColorSetup();
-  if(name==="miss")paintMiss();
+  if(name==="miss"){if(S.miss.phase==="cover"&&!missTimer)S.miss.phase="guess";paintMiss()}
   if(name==="qsetup")paintQuizSetup();
   if(name==="quiz")paintQuiz();
   if(name==="dance"){if(S.dance.phase!=="ready"&&!danceTimer&&!freezeTick){S.dance.phase="ready"}if(!S.dance.out)S.dance.out=[false,false,false,false];paintDance()}
