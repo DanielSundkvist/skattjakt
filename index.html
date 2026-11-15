@@ -106,11 +106,12 @@ header{align-items:center}
 .opts button{min-height:68px;font-size:20px;justify-content:flex-start;text-align:left;padding:12px 16px}
 .opts button .ico{font-size:38px}
 .opts button.wrong{animation:shake .4s;background:#ffd9d3;opacity:.7}
-.themes{display:grid;grid-template-columns:1fr;gap:8px}
-.themes button{justify-content:flex-start;text-align:left;gap:12px;min-height:72px}
+.themes{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media (max-width:359px){.themes{grid-template-columns:1fr}}
+.themes button{flex-direction:column;gap:2px;padding:12px 8px;min-height:104px}
 .themes button .ico{font-size:40px}
-.themes button .tx{display:flex;flex-direction:column;line-height:1.2}
-.themes button .tx small{font-weight:700;font-size:14px;opacity:.8}
+.themes button .tx{display:flex;flex-direction:column;line-height:1.2;text-align:center;gap:2px}
+.themes button .tx small{font-weight:700;font-size:13px;opacity:.8}
 .fact{font-size:19px;font-weight:700;text-wrap:balance}
 .swatch{width:170px;height:170px;margin:0 auto;border:5px solid #12333B;border-radius:28px;background:#fff}
 .bounce{animation:bounce .45s ease-in-out infinite alternate}
@@ -621,6 +622,163 @@ const QUIZ={
    ["Vad är solen?","En stjärna","En planet","En måne","Solen är den stjärna som ligger närmast jorden."]
   ]}}
 };
+Object.assign(QUIZ,{
+ kropp:{name:"Kroppen",ico:"🫀",sub:"Sinnen, tänder och hur kroppen fungerar",q:{
+  1:[
+   ["Vad ser du med?","👀 Ögonen","👂 Öronen","👃 Näsan","Ögonen skickar bilder till hjärnan."],
+   ["Vad hör du med?","👂 Öronen","👄 Munnen","🦶 Fötterna","Öronen fångar upp ljud."],
+   ["Vad luktar du med?","👃 Näsan","✋ Handen","🦵 Knät","Näsan känner dofter."],
+   ["Vad borstar du varje morgon och kväll?","🦷 Tänderna","👂 Öronen","🦶 Tårna","Rena tänder håller sig friska."],
+   ["Vad går du med?","🦶 Fötterna","👐 Händerna","👃 Näsan","Fötterna bär hela kroppen."],
+   ["Hur många fingrar har du på en hand?","🖐️ Fem","✌️ Två","🙌 Tio","Fem fingrar på varje hand blir tio tillsammans."],
+   ["Vad smakar du med?","👅 Tungan","👁️ Ögat","💪 Armen","Tungan känner sött, salt, surt och beskt."],
+   ["Vad gör du när du är trött på kvällen?","😴 Sover","🏃 Springer","🚲 Cyklar","Kroppen vilar och växer när du sover."]
+  ],
+  2:[
+   ["Vad pumpar blodet runt i kroppen?","❤️ Hjärtat","🧠 Hjärnan","🦴 Skelettet","Hjärtat slår hela livet utan att vila."],
+   ["Vad använder du när du tänker?","🧠 Hjärnan","🫁 Lungorna","🦷 Tänderna","Hjärnan styr hela kroppen."],
+   ["Vad heter de hårda delarna inuti kroppen som håller oss uppe?","🦴 Skelettet","💪 Musklerna","🩸 Blodet","Skelettet består av många ben."],
+   ["Hur många sinnen brukar man säga att vi har?","Fem","Två","Tio","Syn, hörsel, lukt, smak och känsel."],
+   ["Vad andas du med?","🫁 Lungorna","❤️ Hjärtat","🦷 Tänderna","Lungorna tar upp syre ur luften."],
+   ["Vad heter de första tänderna som barn får?","Mjölktänder","Visdomständer","Guldtänder","Mjölktänderna lossnar och byts mot nya tänder."],
+   ["Varför tvättar man händerna före maten?","För att få bort smuts och bakterier","För att händerna ska växa","För att maten ska bli varm","Rena händer hjälper oss att hålla oss friska."],
+   ["Vad behöver kroppen dricka varje dag?","💧 Vatten","🥤 Läsk","☕ Kaffe","Kroppen behöver vatten för att må bra."]
+  ],
+  3:[
+   ["Ungefär hur många ben finns i en vuxen människas skelett?","Ungefär 200","Ungefär 20","Ungefär 2 000","En vuxen har 206 ben."],
+   ["Vilket organ renar blodet och gör kiss?","Njurarna","Lungorna","Hjärtat","Vi har två njurar."],
+   ["Vad heter kroppens största organ?","Huden","Hjärtat","Hjärnan","Huden skyddar hela kroppen."],
+   ["Hur många tänder har en vuxen, om man räknar med visdomständerna?","32","20","50","Barn har 20 mjölktänder."],
+   ["Vad transporterar syre runt i kroppen?","Blodet","Nerverna","Skelettet","De röda blodkropparna bär syret."],
+   ["Vilken del av ögat har färg, till exempel blå eller brun?","Iris","Pupillen","Ögonlocket","Iris är den färgade ringen runt pupillen."],
+   ["Vad gör musklerna?","De får kroppen att röra sig","De gör blodet rött","De får håret att växa","Musklerna drar i skelettet så att vi kan röra oss."],
+   ["Var finns lårbenet, som är kroppens längsta ben?","I benet","I armen","I ryggen","Lårbenet går från höften till knät."]
+  ]}},
+ mat:{name:"Mat och frukt",ico:"🍎",sub:"Frukt, grönsaker och var maten kommer ifrån",q:{
+  1:[
+   ["Vilken frukt är gul och böjd?","🍌 Bananen","🍎 Äpplet","🍇 Druvorna","Bananer växer i stora klasar."],
+   ["Vad dricker vi som kommer från kon?","🥛 Mjölk","🧃 Juice","💧 Vatten","Av mjölk gör man också ost och smör."],
+   ["Vilken grönsak är orange och växer i jorden?","🥕 Moroten","🥒 Gurkan","🍅 Tomaten","Morötter är knapriga och söta."],
+   ["Vilket bär är rött och har små prickar?","🍓 Jordgubben","🍋 Citronen","🍐 Päronet","Jordgubbar mognar på sommaren."],
+   ["Vad äter du soppa med?","🥄 Sked","🍴 Gaffel","🔪 Kniv","Med en sked rinner soppan inte av."],
+   ["Vilken frukt är gul och väldigt sur?","🍋 Citronen","🍉 Vattenmelonen","🍑 Persikan","Citroner är så sura att man grimaserar."],
+   ["Vad gör man en smörgås av?","🍞 Bröd","🍦 Glass","🍬 Godis","På brödet kan man ha smör och pålägg."],
+   ["Vilken av de här är en grönsak?","🥦 Broccoli","🍰 Tårta","🍪 Kaka","Grönsaker ger kroppen vitaminer."]
+  ],
+  2:[
+   ["Var växer potatisen?","Under jorden","På träd","På buskar","Potatisen är en knöl som växer i jorden."],
+   ["Vad gör man ost av?","🥛 Mjölk","🌾 Mjöl","🥚 Ägg","Mjölken får stelna och blir till ost."],
+   ["Vad gör man mjöl av?","🌾 Säd, till exempel vete","🥕 Morötter","🍎 Äpplen","Vete, råg och havre mals till mjöl."],
+   ["Vilken frukt torkar man för att få russin?","🍇 Vindruvor","🍒 Körsbär","🍓 Jordgubbar","Russin är torkade vindruvor."],
+   ["Vad kallas dagens första måltid?","Frukost","Lunch","Middag","Frukosten ger kroppen kraft för dagen."],
+   ["Vilket bär är blått och växer i skogen?","🫐 Blåbär","🍓 Jordgubbe","🍒 Körsbär","Blåbär plockas i skogen på sensommaren."],
+   ["Vad gör man pommes frites av?","🥔 Potatis","🌽 Majs","🥖 Bröd","Potatisen skärs i stavar och friteras."],
+   ["Vad behöver en bulldeg för att jäsa och bli stor?","Jäst","Salt","Kanel","Jästen gör degen stor och luftig."]
+  ],
+  3:[
+   ["Vilket ämne i mjölk hjälper skelettet att bli starkt?","Kalcium","Socker","Koffein","Kalcium bygger upp skelett och tänder."],
+   ["Vad gör man choklad av?","Kakaobönor","Kaffebönor","Kokosnötter","Kakaobönor växer i varma länder."],
+   ["Vilken vitamin finns det mycket av i apelsiner?","C-vitamin","D-vitamin","K-vitamin","C-vitamin finns i många frukter och bär."],
+   ["Från vilket land kommer pizzan?","Italien","Kina","Mexiko","Pizzan kommer från staden Neapel i Italien."],
+   ["Vad är karelska piroger oftast fyllda med?","Risgröt","Köttfärs","Sylt","Karelska piroger har ett skal av rågdeg och äts gärna med äggsmör."],
+   ["Vad gör man pasta av?","Mjöl och vatten, ibland ägg","Ris och mjölk","Potatis och smör","Degen formas till exempelvis spagetti eller makaroner."],
+   ["Vad kallas mat som inte innehåller kött eller fisk?","Vegetarisk","Glutenfri","Laktosfri","Vegetarisk mat görs av växter, och ibland ägg och mjölk."],
+   ["Vilken del av växten är moroten?","Roten","Frukten","Bladet","Vi äter morotens rot. Blasten växer ovan jord."]
+  ]}},
+ fordon:{name:"Fordon och yrken",ico:"🚒",sub:"Vad som kör, flyger och vem som gör vad",q:{
+  1:[
+   ["Vem släcker bränder?","🚒 Brandmannen","🍳 Kocken","🎨 Målaren","Brandmän åker ut med brandbilen när det brinner."],
+   ["Vad åker på räls och säger tuff tuff?","🚂 Tåget","🚗 Bilen","🚲 Cykeln","Tåg kör på räls av stål."],
+   ["Vad flyger högt uppe i luften med många passagerare?","✈️ Flygplanet","🚌 Bussen","⛵ Båten","Flygplan har vingar och motorer."],
+   ["Vem hjälper dig när du är sjuk?","🩺 Doktorn","🚒 Brandmannen","✂️ Frisören","Doktorn undersöker dig och hjälper dig att bli frisk."],
+   ["Vad åker på vattnet?","⛵ Båten","🚜 Traktorn","🚂 Tåget","Båtar flyter på vattnet."],
+   ["Vilket fordon har två hjul och pedaler?","🚲 Cykeln","🚗 Bilen","🚁 Helikoptern","Du trampar på pedalerna för att cykeln ska rulla."],
+   ["Vem lagar maten på en restaurang?","🍳 Kocken","👮 Polisen","🌾 Bonden","Kocken arbetar i köket."],
+   ["Vad kör bonden på åkern?","🚜 Traktorn","🚕 Taxin","🛴 Sparkcykeln","Traktorn har stora hjul och kan dra tunga saker."]
+  ],
+  2:[
+   ["Vem lagar tänder?","Tandläkaren","Bagaren","Piloten","Tandläkaren ser till att tänderna mår bra."],
+   ["Vem flyger ett flygplan?","Piloten","Konduktören","Chauffören","Piloten sitter längst fram i cockpit."],
+   ["Vilket fordon kommer med blåljus när någon är sjuk eller skadad?","🚑 Ambulansen","🚚 Lastbilen","🚌 Bussen","Ambulansen kör snabbt till sjukhuset."],
+   ["Vem bakar bröd och bullar?","Bagaren","Snickaren","Läraren","Bagaren börjar ofta arbeta mycket tidigt på morgonen."],
+   ["Vad ska man ha på huvudet när man cyklar?","⛑️ Hjälm","🎩 Hatt","👑 Krona","Hjälmen skyddar huvudet om man ramlar."],
+   ["Vilken färg på trafikljuset betyder stanna?","🔴 Röd","🟢 Grön","🔵 Blå","Rött betyder stanna, och grönt betyder gå."],
+   ["Vem bygger med trä, hammare och såg?","Snickaren","Frisören","Kocken","Snickare bygger hus och möbler."],
+   ["Vilket fordon kan stå stilla i luften?","🚁 Helikoptern","✈️ Flygplanet","🚌 Bussen","Helikoptern lyfter med hjälp av en rotor som snurrar."]
+  ],
+  3:[
+   ["Vad kallas den som bestämmer på ett stort fartyg?","Kapten","Konduktör","Pilot","Kaptenen har ansvar för fartyget och alla ombord."],
+   ["Vilket nummer ringer man i Finland i en nödsituation?","112","911","118","112 är nödnumret i hela Europa."],
+   ["Vad kallas en bil som drivs med el i stället för bensin?","Elbil","Dieselbil","Ångbil","En elbil laddas i ett eluttag eller vid en laddstolpe."],
+   ["Vem ritar hus innan de byggs?","Arkitekten","Rörmokaren","Elektrikern","Arkitekten gör ritningar som byggarna följer."],
+   ["Vad heter fartyget som bryter upp isen så att andra kan komma fram?","Isbrytare","Bogserbåt","Färja","Isbrytare håller farlederna öppna på vintern."],
+   ["Vem tar hand om sjuka djur?","Veterinären","Tandläkaren","Apotekaren","Veterinären är djurens läkare."],
+   ["Vad kallas farkosten som tar astronauter ut i rymden?","Rymdraket","Luftballong","Ubåt","Raketen måste åka väldigt fort för att lämna jorden."],
+   ["Vad gör en meteorolog?","Berättar hur vädret ska bli","Lagar bilar","Odlar grönsaker","Meteorologer gör väderprognoser."]
+  ]}},
+ tal:{name:"Siffror och former",ico:"🔢",sub:"Räkna, jämföra och känna igen former",q:{
+  1:[
+   ["🍎🍎🍎 Hur många äpplen är det?","3","2","5","Ett, två, tre äpplen."],
+   ["⭐⭐ Hur många stjärnor är det?","2","4","1","Ett, två. Det är två stjärnor."],
+   ["Vilken form har en boll?","⚪ Rund","⬛ Fyrkantig","🔺 Trekantig","En boll är rund åt alla håll."],
+   ["Vad kommer efter ett, två, tre?","Fyra","Sex","Nio","Ett, två, tre, fyra."],
+   ["Hur många hjul har en vanlig bil?","4","2","8","Två hjul fram och två hjul bak."],
+   ["Vilket djur är störst?","🐘 Elefanten","🐭 Musen","🐱 Katten","Elefanten är störst av de tre."],
+   ["🎈🎈🎈🎈🎈 Hur många ballonger är det?","5","3","6","Lika många som fingrarna på en hand."],
+   ["Vilken form har tre hörn?","🔺 Triangeln","⚪ Cirkeln","⬛ Kvadraten","En triangel har tre hörn och tre sidor."]
+  ],
+  2:[
+   ["Vad är 2 + 3?","5","4","6","2 + 3 = 5."],
+   ["Vad är 5 − 1?","4","3","6","5 − 1 = 4."],
+   ["Hur många sidor har en kvadrat?","Fyra","Tre","Fem","En kvadrat har fyra lika långa sidor."],
+   ["Vilket tal kommer efter 9?","10","8","11","Efter nio kommer tio."],
+   ["Hur många dagar har en vecka?","Sju","Fem","Tio","Måndag, tisdag, onsdag, torsdag, fredag, lördag och söndag."],
+   ["Vad är hälften av 4?","2","1","3","Två plus två är fyra, så hälften av fyra är två."],
+   ["Vad är 3 + 3?","6","5","9","3 + 3 = 6."],
+   ["Hur många är ett par, till exempel ett par skor?","Två","Tre","Fyra","Ett par är alltid två."]
+  ],
+  3:[
+   ["Vad är 7 + 8?","15","14","16","7 + 8 = 15."],
+   ["Vad är 4 × 5?","20","9","25","Fyra femmor är tjugo."],
+   ["Hur många minuter är en timme?","60","100","30","En halvtimme är 30 minuter."],
+   ["Hur många månader har ett år?","Tolv","Tio","Fjorton","Året börjar i januari och slutar i december."],
+   ["Vad är 20 − 7?","13","12","14","20 − 7 = 13."],
+   ["Hur många sidor har en sexhörning?","Sex","Fem","Åtta","En sexhörning kallas också hexagon."],
+   ["Vad är dubbelt så mycket som 12?","24","22","14","12 + 12 = 24."],
+   ["Hur många centimeter är en meter?","100","10","1 000","En meter är hundra centimeter."]
+  ]}},
+ finland:{name:"Finland",ico:"🇫🇮",sub:"Vårt land, naturen och traditionerna",q:{
+  1:[
+   ["Vilka färger har Finlands flagga?","🔵⚪ Blå och vit","🔴⚪ Röd och vit","🟡🔵 Gul och blå","Flaggan har ett blått kors på vit botten."],
+   ["Var badar man i värmen från en kamin med heta stenar?","🧖 I bastun","🛁 I badkaret","🏊 I simhallen","Bastun är en viktig tradition i Finland."],
+   ["Vad finns det väldigt många av i Finland?","🏞️ Sjöar","🏜️ Öknar","🌋 Vulkaner","Finland kallas de tusen sjöarnas land."],
+   ["Vem bor på Korvatunturi enligt sagan?","🎅 Jultomten","🐉 En drake","🧙 En trollkarl","Korvatunturi är ett fjäll i Lappland."],
+   ["Vilket djur har stora horn och bor i Lappland?","🦌 Renen","🦒 Giraffen","🐘 Elefanten","Renar hittar mat under snön på vintern."],
+   ["Vad åker man på i snön?","🎿 Skidor","🛹 Skateboard","🏄 Surfbräda","Skidåkning är populärt i Finland."],
+   ["Vad plockar man i skogen på sensommaren?","🫐 Blåbär","🍌 Bananer","🍍 Ananas","I Finland får alla plocka bär i skogen."],
+   ["Vilken årstid åker man pulka i Finland?","⛄ På vintern","🌞 På sommaren","🍂 På hösten","På vintern ligger snön kvar länge."]
+  ],
+  2:[
+   ["Vad heter Finlands huvudstad?","Helsingfors","Åbo","Tammerfors","Helsingfors ligger vid havet i södra Finland."],
+   ["Vilken dag firar Finland sin självständighet?","6 december","24 december","1 maj","På självständighetsdagen tänder många två ljus i fönstret."],
+   ["Vilka två språk är nationalspråk i Finland?","Finska och svenska","Finska och engelska","Svenska och norska","Båda språken har samma ställning i lagen."],
+   ["Vad heter Finlands nationalfågel?","Sångsvanen","Skatan","Måsen","Sångsvanen är stor och vit."],
+   ["Vad kallas det när solen inte går ner på sommaren längst i norr?","Midnattssol","Norrsken","Solförmörkelse","I norra Lappland lyser solen dygnet runt mitt i sommaren."],
+   ["Vilket hav ligger Finland vid?","Östersjön","Medelhavet","Stilla havet","Finska viken och Bottniska viken är delar av Östersjön."],
+   ["Vad firar man på midsommar?","Sommarens ljusaste tid","Årets första snö","Att skolan börjar","Många firar midsommar vid en sjö eller vid havet."],
+   ["Vilka pengar använder man i Finland?","Euro","Kronor","Dollar","Finland bytte från mark till euro år 2002."]
+  ],
+  3:[
+   ["Vilket år blev Finland självständigt?","1917","1809","1995","Finland blev självständigt den 6 december 1917."],
+   ["Vem skrev berättelserna om Mumintrollen?","Tove Jansson","Astrid Lindgren","Zacharias Topelius","Tove Jansson var en finlandssvensk författare och konstnär."],
+   ["Vad heter Finlands nationalepos?","Kalevala","Eddan","Odysséen","Kalevala samlades in av Elias Lönnrot."],
+   ["Vad heter Finlands nationalsång på svenska?","Vårt land","Du gamla, du fria","Ja, vi elsker","Texten skrevs av Johan Ludvig Runeberg."],
+   ["Vilken är Finlands nordligaste kommun?","Utsjoki","Rovaniemi","Uleåborg","Utsjoki ligger allra längst upp i Lappland."],
+   ["Vad heter ögruppen mellan Finland och Sverige där man talar svenska?","Åland","Gotland","Lofoten","Åland hör till Finland och har självstyre."],
+   ["Vad heter Finlands högsta fjäll?","Halti","Saana","Pallas","Halti ligger vid gränsen mot Norge."],
+   ["Ungefär hur många invånare har Finland?","Ungefär 5,6 miljoner","Ungefär 1 miljon","Ungefär 20 miljoner","De flesta bor i södra delen av landet."]
+  ]}}
+});
 /* Färgjakten: [namn i neutrum, bakgrund, rundad som cirkel] */
 const HUES=[["rött","#E53935"],["blått","#1E63D5"],["gult","#FFD21F"],["grönt","#2E9E4F"],["orange","#FF8A1F"],["lila","#8E44C9"],["rosa","#FF8FB8"],["svart","#1A1A1A"],["vitt","#FFFFFF"],["brunt","#8B5A2B"],
  ["runt","#FFFFFF",true],["fyrkantigt","#FFFFFF"],
@@ -1116,7 +1274,7 @@ function quizSpeech(){
   const Q=S.quiz,q=QUIZ[Q.theme].q[Q.level][Q.list[Q.i]];
   if(Q.phase==="right")return"Rätt! "+q[4];
   const o=Q.order.map(k=>plain(q[k]));
-  return q[0]+" Är det "+o[0]+", "+o[1]+", eller "+o[2]+"?";
+  return q[0].replace(/[\p{Extended_Pictographic}\uFE0F]/gu,"").trim()+" Är det "+o[0]+", "+o[1]+", eller "+o[2]+"?";
 }
 function paintQuiz(){
   hush();
