@@ -85,6 +85,10 @@ select{font:inherit;font-weight:700;padding:12px 14px;border-radius:14px;border:
 .game .gname{font-family:var(--display);font-weight:800;font-size:22px;line-height:1.1}
 .game .gsub{font-size:14px;font-weight:700;opacity:.75;line-height:1.25}
 .kidbtn{min-height:64px;font-size:20px}
+button.homebtn{background:var(--sand);color:var(--ink);min-height:46px;padding:6px 16px 6px 12px;border-radius:999px;box-shadow:0 4px 0 rgba(0,0,0,.3);font-size:17px;gap:6px}
+button.homebtn .ico{font-size:22px}
+header{align-items:center}
+.tools{align-items:center}
 .timer{display:flex;align-items:center;gap:12px}
 .timer .bar{flex:1;height:16px;border-radius:8px;background:#fff;overflow:hidden;box-shadow:inset 0 0 0 2px var(--mist)}
 .timer .fill{height:100%;width:100%;background:var(--coral);transition:width .25s linear}
@@ -134,7 +138,7 @@ canvas#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:non
     <h1 id="title">Familjens lekar</h1>
     <div class="tools">
       <button class="quiet" id="openChest" type="button">Skattkistan</button>
-      <button class="quiet" id="restart" type="button" hidden>Hem</button>
+      <button class="homebtn" id="restart" type="button" hidden><span class="ico">🏠</span>Hem</button>
     </div>
   </header>
 
@@ -396,7 +400,8 @@ canvas#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:non
     </div>
     <button type="button" id="winChest">Öppna skattkistan</button>
     <button type="button" id="replay">Spela hurrasången igen</button>
-    <button class="primary" type="button" id="again"><span class="ico">🔁</span>Lek igen</button>
+    <button type="button" class="kidbtn" id="same"><span class="ico">🔁</span>Samma lek igen</button>
+    <button class="primary" type="button" id="again"><span class="ico">🏠</span>Välj en annan lek</button>
   </section>
   <!-- 5. Skattkistan med märken -->
   <section class="card" id="chest" hidden>
@@ -1289,6 +1294,10 @@ $("found").addEventListener("click",pressFound);
 $("doneBtn").addEventListener("click",afterDone);
 $("missionDone").addEventListener("click",next);
 $("again").addEventListener("click",()=>show("home"));
+$("same").addEventListener("click",()=>{
+  const g=S.game;audio();
+  if(g==="char")startChar();else if(g==="color")show("csetup");else if(g==="dance")startDance();else if(g==="quiz")show("qsetup");else show("setup");
+});
 $("restart").addEventListener("click",()=>{hush();show("home")});
 paintSetup();
 (function(){
