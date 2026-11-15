@@ -851,19 +851,89 @@ function paintVoices(){
   const cur=pickVoice();
   vs.forEach(v=>{const o=document.createElement("option");o.value=v.name;o.textContent=v.name;o.selected=!!cur&&v.name===cur.name;sel.append(o)});
 }
-function speak(text){
-  if(!canSpeak)return;
+/* ---------- Uppläsning ----------
+   En uppläsning är en text där delarna skiljs åt med "|". Varje del spelas som ett inspelat
+   klipp (audio/<id>.mp3) om det finns, annars läser telefonens egen röst.
+   Delar som börjar med "~" innehåller namn och läses alltid av telefonens röst. */
+let CLIPS=new Set(),clipVoice="",talkTok=0,lastUtter=null;
+const player=typeof Audio!=="undefined"?new Audio():null;
+const canTalk=()=>canSpeak||CLIPS.size>0;
+function speechId(t){
+  let h=0x811c9dc5;
+  for(let i=0;i<t.length;i++){h^=t.charCodeAt(i);h=Math.imul(h,0x01000193)>>>0}
+  return("0000000"+h.toString(16)).slice(-8)+t.length.toString(36);
+}
+/* Skriver ut räknetecken i ord, så att rösten läser dem rätt. */
+function spoken(t){
+  return t.replace(/[\p{Extended_Pictographic}️]/gu,"").replace(/−/g," minus ").replace(/×/g," gånger ").replace(/\+/g," plus ").replace(/=/g," är lika med ").replace(/\s+/g," ").trim();
+}
+function tts(text,done){
+  if(!canSpeak){if(done)done();return}
   try{
-    speechSynthesis.cancel();
-    const u=new SpeechSynthesisUtterance(text);u.lang="sv-SE";u.rate=0.92;u.pitch=1;
+    const u=new SpeechSynthesisUtterance(spoken(text));u.lang="sv-SE";u.rate=0.92;u.pitch=1;
     const v=pickVoice();if(v){u.voice=v;u.lang=v.lang}
+    let fired=false;const fin=()=>{if(!fired){fired=true;if(done)done()}};
+    u.onend=fin;u.onerror=fin;lastUtter=u;
     speechSynthesis.speak(u);
-  }catch(e){}
+  }catch(e){if(done)done()}
+}
+function speak(text){
+  hush();
+  const tok=++talkTok,segs=String(text||"").split("|").map(x=>x.trim()).filter(Boolean);let i=0;
+  const next=()=>{
+    if(tok!==talkTok||i>=segs.length)return;
+    let s=segs[i++];const dyn=s[0]==="~";if(dyn)s=s.slice(1);
+    const id=speechId(s);
+    if(!dyn&&player&&CLIPS.has(id)){
+      let moved=false;const fall=()=>{if(!moved&&tok===talkTok){moved=true;tts(s,next)}};
+      player.onended=()=>{if(!moved){moved=true;next()}};player.onerror=fall;
+      try{player.src="audio/"+id+".mp3";const p=player.play();if(p&&p.catch)p.catch(fall)}catch(e){fall()}
+    }else tts(s,next);
+  };
+  next();
 }
 function say(text){if(S.readAuto===true)speak(text)}
+function hush(){
+  talkTok++;
+  if(player){try{player.onended=null;player.onerror=null;player.pause()}catch(e){}}
+  if(canSpeak){try{speechSynthesis.cancel()}catch(e){}}
+}
+/* Delar en gåta i beskrivning och uppmaningen att leta. */
+function riddleParts(r){const m=/^(.*[.!?])\s+([^.!?]+[.!?])$/.exec(r);return m?[m[1],m[2]]:[r,""]}
+/* Alla fasta texter som appen kan läsa upp. Används när röstklippen skapas. */
+function allSpeech(){
+  const out=new Set(),add=t=>String(t).split("|").forEach(x=>{x=x.trim();if(x&&x[0]!=="~")out.add(x)});
+  add("Hej! Nu börjar leken. Är ni redo?");
+  Object.values(T).forEach(t=>{if(t.story)add(t.story)});
+  add("Sista ledtråden! Nu letar ni efter skatten.|Vart ska ni springa?|Vilken plats står ni vid? Tryck på rätt bild.");
+  add("Titta på lappen igen!|Lyssna på gåtan en gång till!|Rätt plats!|Rätt lapp!|Nu är det bara skatten kvar!|Uppdrag!");
+  ["inne","ute"].forEach(pl=>PLACES[pl].concat(JUL[pl]).forEach(p=>p[2].forEach(r=>riddleParts(r).forEach(add))));
+  Object.values(MISSIONS).forEach(l=>l.forEach(m=>{add(m[1]);add(m[1].replace("Ge varandra en","Ge en vuxen en"))}));
+  add("Din tur! Ta telefonen. Alla andra blundar.|Nu får alla titta! Vilket djur är det?|Rätt!|Din tur!");
+  CHARADES.forEach(a=>add("Det var "+a[2]+"."));
+  HUES.forEach(h=>{add("Hämta något som är "+h[0]+"!");add("Vem hittar först något som är "+h[0]+"?")});
+  [20,30,45].forEach(n=>add("Ni har "+n+" sekunder."));
+  add("Bra hittat!|Tiden tog slut!|Musiken stannade!");
+  ["musiken stannar","tiden tar slut"].forEach(x=>add("Dags att städa! Hinner ni bära tillbaka alla saker innan "+x+"?"));
+  Object.values(QUIZ).forEach(t=>[1,2,3].forEach(lv=>t.q[lv].forEach(q=>{add(q[0]);add(plain(q[1]));add(plain(q[2]));add(plain(q[3]));add(q[4])})));
+  add("Inte riktigt. Försök en gång till!");
+  add("Titta noga på bilderna och kom ihåg dem.|Nu försvinner en bild.|En bild är borta. Vad fattas?|Den var aldrig med. Försök igen!|Titta noga på bilderna. Sedan försvinner en. Vilken?");
+  THINGS.forEach(t=>add("Det var "+t[1]+" som fattades."));
+  add("Stopp!");POSES.forEach(p=>add("Stå blickstilla som "+p[1]+"!"));
+  return[...out];
+}
+/* Hämtar listan över inspelade klipp, om det finns några. */
+function loadClips(){
+  try{
+    fetch("audio/clips.json",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{
+      if(!j||!Array.isArray(j.ids))return;
+      CLIPS=new Set(j.ids);clipVoice=j.voice||"";paintAuto();
+      if(!canSpeak)show(S.screen);
+    }).catch(()=>{});
+  }catch(e){}
+}
 /* Knapptext med en stor bild framför, så att barn som inte läser hittar rätt. */
 function lab(btn,ico,text){btn.textContent="";const i=document.createElement("span");i.className="ico";i.textContent=ico;btn.append(i,text)}
-function hush(){if(canSpeak){try{speechSynthesis.cancel()}catch(e){}}}
 /* Skattkistan: ett nytt märke för varje avklarad jakt, sparat på den här telefonen. */
 function award(kind){
   const list=kind==="lek"?BADGES.lek:(BADGES[S.theme]||BADGES.vanlig);
@@ -1007,10 +1077,10 @@ function paintHunt(){
     $("doneTitle").textContent=S.notes?"Rätt lapp!":"Rätt plats!";
     $("doneText").textContent="Ledtråd "+(S.i+1)+" av "+n+" är klar. "+(left===1?"Nu är det bara skatten kvar!":left+" ledtrådar kvar till skatten.");
     if(s.mission)lab($("doneBtn"),"🤸","Till uppdraget");else if(left===1)lab($("doneBtn"),"🎁","Sista ledtråden");else lab($("doneBtn"),"➡️","Nästa ledtråd");
-    say($("doneTitle").textContent+" "+$("doneText").textContent);
+    say($("doneTitle").textContent+(left===1?"|Nu är det bara skatten kvar!":""));
     return;
   }
-  if(onMission){$("missionIcon").textContent=s.mission[0];$("missionText").textContent=S.kids<2?s.mission[1].replace("Ge varandra en","Ge en vuxen en"):s.mission[1];say("Uppdrag! "+$("missionText").textContent);return}
+  if(onMission){$("missionIcon").textContent=s.mission[0];$("missionText").textContent=S.kids<2?s.mission[1].replace("Ge varandra en","Ge en vuxen en"):s.mission[1];say("Uppdrag!|"+$("missionText").textContent);return}
   $("clueNo").textContent=last?"Sista ledtråden: nu letar ni efter skatten!":"Ledtråd "+(S.i+1)+" av "+n;
   $("clueCard").classList.toggle("final",last);$("answerCard").classList.toggle("final",last);
   $("riddle").textContent=clueText(s,last);
@@ -1028,7 +1098,7 @@ function paintHunt(){
       const b=document.createElement("button");b.type="button";b.textContent=a[0];b.setAttribute("aria-label",a[1]);
       b.addEventListener("click",()=>{
         if(a[0]===s.animal[0]){ding();foundStop()}
-        else{b.classList.remove("wrong");void b.offsetWidth;b.classList.add("wrong");$("msg").textContent="Inte "+a[1]+". Titta på lappen igen!";say($("msg").textContent)}
+        else{b.classList.remove("wrong");void b.offsetWidth;b.classList.add("wrong");$("msg").textContent="Inte "+a[1]+". Titta på lappen igen!";say("Titta på lappen igen!")}
       });
       grid.append(b);
     });
@@ -1044,7 +1114,7 @@ function paintHunt(){
       b.append(p.pic);sm.textContent=p.name;b.append(sm);
       b.addEventListener("click",()=>{
         if(p.name===s.name){ding();foundStop()}
-        else{b.classList.remove("wrong");void b.offsetWidth;b.classList.add("wrong");$("msg").textContent="Inte "+p.name.toLowerCase()+". Lyssna på gåtan en gång till!";say($("msg").textContent)}
+        else{b.classList.remove("wrong");void b.offsetWidth;b.classList.add("wrong");$("msg").textContent="Inte "+p.name.toLowerCase()+". Lyssna på gåtan en gång till!";say("Lyssna på gåtan en gång till!")}
       });
       grid.append(b);
     });
@@ -1056,10 +1126,11 @@ function paintHunt(){
 function clueSpeech(s,last){
   const parts=[];
   if(th().story&&S.i===0)parts.push(th().story);
-  if(leader())parts.push(leader()+" leder vägen.");
+  if(leader())parts.push("~"+leader()+" leder vägen.");
   if(last)parts.push("Sista ledtråden! Nu letar ni efter skatten.");
-  parts.push(clueText(s,last));
-  return parts.join(" ");
+  const rp=riddleParts(s.riddle);
+  parts.push(rp[0]);parts.push(S.notes||last?rp[1]:"Vart ska ni springa?");
+  return parts.join("|");
 }
 /* ---------- Djurcharader ---------- */
 function startChar(){
@@ -1077,12 +1148,12 @@ function paintChar(){
   $("cTurn").hidden=S.kids<2;$("cName").textContent=name;$("cTurn").dataset.kid=String(k);
   const pic=$("cPic"),title=$("cTitle"),text=$("cText"),main=$("cMain");
   $("cSkip").hidden=!(C.phase==="show"||C.phase==="act");
-  $("cListen").hidden=!canSpeak||C.phase==="show";
+  $("cListen").hidden=!canTalk()||C.phase==="show";
   let speech="";
   if(C.phase==="pass"){
     pic.textContent="🙈";title.textContent=S.kids>1?"Ge telefonen till "+name:"Din tur!";
     text.textContent="Alla andra blundar. Tryck när bara du ser skärmen.";
-    lab(main,"👀","Visa djuret");speech=(S.kids>1?name+", din tur! ":"Din tur! ")+"Ta telefonen. Alla andra blundar.";
+    lab(main,"👀","Visa djuret");speech=(S.kids>1?"~"+name+"!|":"")+"Din tur! Ta telefonen. Alla andra blundar.";
   }else if(C.phase==="show"){
     pic.textContent=a[0];title.textContent=a[1];text.textContent="Kom ihåg djuret, men säg det inte högt.";
     lab(main,"🙈","Göm djuret");
@@ -1093,7 +1164,7 @@ function paintChar(){
     pic.textContent=a[0];title.textContent="Rätt! Det var "+a[2]+".";
     text.textContent=(C.i+1)+" av "+C.total+" djur är klara.";
     if(C.i>=C.total-1)lab(main,"🎉","Klart!");else lab(main,"⭐","Nästa djur");
-    speech=title.textContent;
+    speech="Rätt!|Det var "+a[2]+".";
   }
   S.charSpeech=speech;if(speech)say(speech);
 }
@@ -1152,7 +1223,7 @@ function paintColor(){
   for(let j=0;j<C.total;j++){const sp=document.createElement("span");sp.className=(j<C.i||C.phase==="tidy")?"done":j===C.i?"now":"";tr.append(sp)}
   $("fTurn").hidden=C.race||S.kids<2||C.phase==="tidy";$("fName").textContent=name;$("fTurn").dataset.kid=String(k);
   const show=C.phase==="show",sw=$("fSwatch"),who=$("fWho");
-  sw.hidden=!show;$("fStars").hidden=show;$("fSkip").hidden=!show;$("fListen").hidden=!canSpeak;
+  sw.hidden=!show;$("fStars").hidden=show;$("fSkip").hidden=!show;$("fListen").hidden=!canTalk();
   $("fTimer").hidden=!((show&&C.time)||(C.phase==="tidy"&&!C.tidyLate&&colorTick));who.hidden=!(show&&C.race);$("fMain").hidden=show&&C.race;who.textContent="";
   let speech;
   if(show){
@@ -1167,9 +1238,9 @@ function paintColor(){
       speech="Vem hittar först något som är "+h[0]+"?";
     }else{
       $("fText").textContent="Spring och hämta något som är "+h[0]+"!";
-      lab($("fMain"),"🏃","Hittat!");speech=(S.kids>1?name+", din tur! ":"")+"Hämta något som är "+h[0]+"!";
+      lab($("fMain"),"🏃","Hittat!");speech=(S.kids>1?"~"+name+"!|Din tur!|":"")+"Hämta något som är "+h[0]+"!";
     }
-    if(C.time)speech+=" Ni har "+C.time+" sekunder.";
+    if(C.time)speech+="|Ni har "+C.time+" sekunder.";
     if(C.time&&!colorTick)startColorTimer();
   }else{
     if(C.phase!=="tidy")stopColorTimer();
@@ -1190,7 +1261,7 @@ function paintColor(){
     }
     if(C.phase==="tidy")lab($("fMain"),"✅","Allt är tillbaka");
     else if(C.i>=C.total-1)lab($("fMain"),"🧺","Städa");else lab($("fMain"),"➡️","Nästa");
-    speech=C.phase==="tidy"&&!C.tidyLate?"Dags att städa! Hinner ni bära tillbaka alla saker innan "+(S.sound?"musiken stannar":"tiden tar slut")+"?":$("fTitle").textContent;
+    speech=C.phase==="tidy"&&!C.tidyLate?"Dags att städa! Hinner ni bära tillbaka alla saker innan "+(S.sound?"musiken stannar":"tiden tar slut")+"?":(C.phase==="right"&&C.race?"~":"")+$("fTitle").textContent;
   }
   S.colorSpeech=speech;say(speech);
 }
@@ -1272,9 +1343,8 @@ function startQuiz(){
 }
 function quizSpeech(){
   const Q=S.quiz,q=QUIZ[Q.theme].q[Q.level][Q.list[Q.i]];
-  if(Q.phase==="right")return"Rätt! "+q[4];
-  const o=Q.order.map(k=>plain(q[k]));
-  return q[0].replace(/[\p{Extended_Pictographic}\uFE0F]/gu,"").trim()+" Är det "+o[0]+", "+o[1]+", eller "+o[2]+"?";
+  if(Q.phase==="right")return"Rätt!|"+q[4];
+  return[q[0]].concat(Q.order.map(k=>plain(q[k]))).join("|");
 }
 function paintQuiz(){
   hush();
@@ -1283,7 +1353,7 @@ function paintQuiz(){
   for(let j=0;j<Q.total;j++){const sp=document.createElement("span");sp.className=j<Q.i?"done":j===Q.i?"now":"";tr.append(sp)}
   $("qTurn").hidden=S.kids<2;$("qName").textContent=kidName(k);$("qTurn").dataset.kid=String(k);
   const ask=Q.phase==="ask";$("qAsk").hidden=!ask;$("qRight").hidden=ask;
-  $("qListen").hidden=$("qListen2").hidden=!canSpeak;
+  $("qListen").hidden=$("qListen2").hidden=!canTalk();
   if(ask){
     $("qNo").textContent=QUIZ[Q.theme].name+": fråga "+(Q.i+1)+" av "+Q.total;$("qText").textContent=q[0];$("qMsg").textContent="";
     const box=$("qOpts");box.textContent="";
@@ -1333,10 +1403,10 @@ function missDeal(){
 }
 function missSpeech(){
   const M=S.miss,k=(M.i+M.offset)%Math.max(1,S.kids);
-  if(M.phase==="look")return(S.kids>1?kidName(k)+", din tur! ":"")+"Titta noga på bilderna och kom ihåg dem.";
+  if(M.phase==="look")return(S.kids>1?"~"+kidName(k)+"!|Din tur!|":"")+"Titta noga på bilderna och kom ihåg dem.";
   if(M.phase==="cover")return"Nu försvinner en bild.";
   if(M.phase==="guess")return"En bild är borta. Vad fattas?";
-  if(M.phase==="right")return"Rätt! Det var "+THINGS[M.gone][1]+" som fattades.";
+  if(M.phase==="right")return"Rätt!|Det var "+THINGS[M.gone][1]+" som fattades.";
   return"Titta noga på bilderna. Sedan försvinner en. Vilken?";
 }
 function paintMiss(){
@@ -1347,7 +1417,7 @@ function paintMiss(){
   $("mTurn").hidden=S.kids<2||M.phase==="ready";$("mName").textContent=kidName(k);$("mTurn").dataset.kid=String(k);
   const grid=$("mGrid"),opts=$("mOpts");grid.textContent="";opts.textContent="";$("mMsg").textContent="";
   $("mLevelField").hidden=M.phase!=="ready";grid.hidden=!(M.phase==="look"||M.phase==="guess");opts.hidden=M.phase!=="guess";
-  $("mStars").hidden=!(M.phase==="right"||M.phase==="cover");$("mMain").hidden=M.phase==="guess"||M.phase==="cover";$("mMsg").hidden=M.phase!=="guess";$("mListen").hidden=!canSpeak;
+  $("mStars").hidden=!(M.phase==="right"||M.phase==="cover");$("mMain").hidden=M.phase==="guess"||M.phase==="cover";$("mMsg").hidden=M.phase!=="guess";$("mListen").hidden=!canTalk();
   const cell=v=>{const c=document.createElement("span");if(v<0){c.className="hole";c.textContent="❔"}else c.textContent=THINGS[v][0];grid.append(c)};
   grid.style.gridTemplateColumns="repeat("+L.cols+",1fr)";
   if(M.phase==="ready"){
@@ -1454,7 +1524,7 @@ function danceFreeze(){
   const D=S.dance;danceTimer=null;stopMusic();
   const ac=musicCtx();if(ac)note(ac,43,ac.currentTime+0.02,0.35,"square",0.15);
   D.phase="freeze";D.pose=(D.pose+1+Math.floor(Math.random()*(POSES.length-1)))%POSES.length;save();paintDance();
-  say("Stopp! Stå blickstilla som "+POSES[D.pose][1]+"!");
+  say("Stopp!|Stå blickstilla som "+POSES[D.pose][1]+"!");
   freezeEnd=Date.now()+FREEZE*1000;
   const tick=()=>{
     const ms=freezeEnd-Date.now(),left=Math.max(0,Math.ceil(ms/1000));
@@ -1545,7 +1615,7 @@ const p3=seg("notes",()=>S.notes?1:0,v=>S.notes=v==="1");
 while(S.names.length<4)S.names.push("");
 seg("kids",()=>S.kids,v=>{S.kids=+v;paintNames();paintCount()});
 seg("auto",()=>S.readAuto===true?1:0,v=>{S.readAuto=v==="1";paintAuto()});
-function paintAuto(){$("autoHint").textContent=!canSpeak?"Den här telefonen eller webbläsaren saknar stöd för uppläsning.":S.readAuto===true?"Gåtor, uppdrag och vems tur det är läses upp direkt när de visas.":"Barnen trycker på högtalaren för att få texten uppläst.";}
+function paintAuto(){$("speakClue").hidden=$("speakMission").hidden=!canTalk();$("autoHint").textContent=(CLIPS.size?"En inspelad röst läser det mesta. Barnens namn läses av telefonens röst. ":"")+(!canTalk()?"Den här telefonen eller webbläsaren saknar stöd för uppläsning.":S.readAuto===true?"Gåtor, uppdrag och vems tur det är läses upp direkt när de visas.":"Barnen trycker på högtalaren för att få texten uppläst.");}
 paintAuto();
 $("goHunt").addEventListener("click",()=>{S.game="hunt";show("setup")});
 $("goChar").addEventListener("click",()=>{audio();startChar()});
@@ -1575,13 +1645,13 @@ $("cListen").addEventListener("click",()=>{if(S.charSpeech)speak(S.charSpeech)})
 seg("sound",()=>S.sound?1:0,v=>{S.sound=v==="1";if(S.sound)ding()});
 paintNames();paintCount();
 $("replay").addEventListener("click",hurra);
-$("speakClue").hidden=$("speakMission").hidden=!canSpeak;
+$("speakClue").hidden=$("speakMission").hidden=!canTalk();
 paintVoices();
 if(canSpeak){try{speechSynthesis.addEventListener("voiceschanged",paintVoices)}catch(e){}}
 $("voice").addEventListener("change",e=>{S.voice=e.target.value;save()});
 $("voiceTest").addEventListener("click",()=>speak("Hej! Nu börjar leken. Är ni redo?"));
 $("speakClue").addEventListener("click",()=>speak(clueSpeech(S.stops[S.i],S.i===S.stops.length-1)));
-$("speakMission").addEventListener("click",()=>speak("Uppdrag! "+$("missionText").textContent));
+$("speakMission").addEventListener("click",()=>speak("Uppdrag!|"+$("missionText").textContent));
 $("openChest").addEventListener("click",openChest);
 $("winChest").addEventListener("click",openChest);
 $("chestBack").addEventListener("click",()=>show(S.back&&S.back!=="chest"?S.back:"home"));
@@ -1600,6 +1670,7 @@ $("same").addEventListener("click",()=>{
 });
 $("restart").addEventListener("click",()=>{hush();show("home")});
 paintSetup();
+loadClips();
 (function(){
   const sc=S.screen,ok=["home","setup","prep","hunt","char","color","dance","win","chest"].concat(["qsetup","quiz","csetup","miss"]).includes(sc)
     &&!(sc==="miss"&&!S.miss)&&!(sc==="quiz"&&!S.quiz)&&!((sc==="prep"||sc==="hunt")&&!S.stops.length)&&!(sc==="char"&&!S.char)&&!(sc==="color"&&!S.color)&&!(sc==="dance"&&!S.dance);

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Röststudio för Familjens lekar</title>
+<style>
+:root{--bg:#F4F7F7;--card:#fff;--ink:#12333B;--muted:#56707A;--accent:#0E4D5C;--sun:#FFC83D;--bad:#B3261E;--line:#D5E1E3}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:760px;margin:0 auto;padding:24px 16px 60px;display:flex;flex-direction:column;gap:16px}
+h1{font-size:28px;margin:0;line-height:1.2}
+h2{font-size:20px;margin:0}
+p{margin:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px}
+.muted{color:var(--muted);font-size:15px}
+input[type=password],input[type=text]{font:inherit;padding:10px 12px;border:2px solid var(--line);border-radius:10px;width:100%}
+button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:10px 16px;cursor:pointer;background:var(--accent);color:#fff}
+button.light{background:#E7EEF0;color:var(--ink)}
+button:disabled{opacity:.5;cursor:default}
+button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.voices{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.voice{display:flex;align-items:center;gap:8px;border:2px solid var(--line);border-radius:10px;padding:8px 10px}
+.voice.sel{border-color:var(--accent);background:#EAF3F4}
+.voice label{flex:1;display:flex;gap:8px;align-items:center;cursor:pointer;min-width:0}
+.voice small{color:var(--muted)}
+.voice button{padding:6px 10px}
+progress{width:100%;height:18px}
+.err{color:var(--bad);font-weight:700;white-space:pre-wrap}
+.ok{color:#1B6E3C;font-weight:700}
+a.dl{display:inline-block;background:var(--sun);color:var(--ink);font-weight:800;padding:10px 16px;border-radius:10px;text-decoration:none}
+ol{margin:0;padding-left:22px}
+iframe{display:none}
+</style>
+</head>
+<body>
+<main>
+  <h1>Röststudio för Familjens lekar</h1>
+  <p class="muted">Här skapar du röstklippen till appen med Googles röstjänst. Nyckeln du klistrar in används bara i den här fliken. Den sparas inte och skickas bara till Google.</p>
+
+  <section class="card">
+    <h2>1. Klistra in din nyckel</h2>
+    <input type="password" id="key" placeholder="API-nyckel från Google Cloud" autocomplete="off" aria-label="API-nyckel">
+    <div class="row">
+      <button type="button" id="load">Hämta svenska röster</button>
+      <span class="muted" id="count"></span>
+    </div>
+    <p class="err" id="err1" role="alert"></p>
+  </section>
+
+  <section class="card" id="step2" hidden>
+    <h2>2. Provlyssna och välj en röst</h2>
+    <p class="muted">Tryck på Lyssna för att höra en röst läsa en gåta. Markera den ni gillar bäst.</p>
+    <input type="text" id="sample" aria-label="Text att provlyssna" value="Här bor skorna, två och två. Vart ska ni springa?">
+    <div class="voices" id="voices"></div>
+    <p class="err" id="err2" role="alert"></p>
+  </section>
+
+  <section class="card" id="step3" hidden>
+    <h2>3. Skapa alla klipp</h2>
+    <p id="plan"></p>
+    <div class="row">
+      <button type="button" id="go">Skapa klippen</button>
+      <button type="button" class="light" id="stop" disabled>Pausa</button>
+    </div>
+    <progress id="bar" value="0" max="1"></progress>
+    <p id="status" role="status"></p>
+    <p class="err" id="err3" role="alert"></p>
+  </section>
+
+  <section class="card" id="step4" hidden>
+    <h2>4. Ladda ner och skicka filerna</h2>
+    <p>Ladda ner alla filer här nedanför och bifoga dem i chatten med Claude. Då läggs klippen in i appen.</p>
+    <div class="row" id="links"></div>
+    <p class="muted">När klippen är inlagda kan du ta bort nyckeln i Google Cloud under Credentials.</p>
+  </section>
+</main>
+<iframe src="index.html" id="app" title="Appen" aria-hidden="true"></iframe>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+const API="https://texttospeech.googleapis.com/v1";
+const $=id=>document.getElementById(id);
+let voices=[],chosen="",texts=[],appWin=null,done=new Map(),running=false,paused=false;
+
+// Appen laddas i en dold ram, så att listan med texter alltid stämmer med appen.
+function appReady(){
+  return new Promise((res,rej)=>{
+    const f=$("app");let n=0;
+    const t=setInterval(()=>{
+      const w=f.contentWindow;
+      if(w&&typeof w.allSpeech==="function"){clearInterval(t);res(w)}
+      else if(++n>100){clearInterval(t);rej(new Error("Kunde inte läsa texterna från appen. Ladda om sidan."))}
+    },100);
+  });
+}
+const key=()=>$("key").value.trim();
+async function call(path,body){
+  const r=await fetch(API+path+(path.includes("?")?"&":"?")+"key="+encodeURIComponent(key()),body?{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}:undefined);
+  let j=null;try{j=await r.json()}catch(e){}
+  if(!r.ok){const e=new Error((j&&j.error&&j.error.message)||("Fel "+r.status));e.status=r.status;throw e}
+  return j;
+}
+function explain(e){
+  const m=String(e.message||e);
+  if(/API key not valid/i.test(m))return"Nyckeln stämmer inte. Kopiera den en gång till från Google Cloud.";
+  if(/billing/i.test(m))return"Betalning är inte aktiverad på Google Cloud-kontot än.\n"+m;
+  if(/has not been used|is disabled|SERVICE_DISABLED/i.test(m))return"Tjänsten Cloud Text-to-Speech API är inte påslagen i projektet.\n"+m;
+  if(/referer|referrer|blocked/i.test(m))return"Nyckeln är begränsad och tillåter inte den här sidan eller tjänsten.\n"+m;
+  if(/Failed to fetch|NetworkError/i.test(m))return"Kunde inte nå Google. Kontrollera nätet, eller stäng av annonsblockerare för den här sidan.";
+  return m;
+}
+function b64bytes(b){const s=atob(b),u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u}
+async function synth(text,voice){
+  const j=await call("/text:synthesize",{input:{text},voice:{languageCode:"sv-SE",name:voice},audioConfig:{audioEncoding:"MP3"}});
+  if(!j||!j.audioContent)throw new Error("Tomt svar från Google.");
+  return b64bytes(j.audioContent);
+}
+
+$("load").addEventListener("click",async()=>{
+  $("err1").textContent="";
+  if(!key()){$("err1").textContent="Klistra in nyckeln först.";return}
+  $("load").disabled=true;
+  try{
+    appWin=await appReady();texts=appWin.allSpeech();
+    const j=await call("/voices?languageCode=sv-SE");
+    const all=(j.voices||[]);
+    voices=all.filter(v=>/Chirp3-HD/.test(v.name));
+    if(!voices.length)voices=all;
+    voices.sort((a,b)=>a.name.localeCompare(b.name));
+    $("count").textContent=voices.length+" röster hittades.";
+    paintVoices();$("step2").hidden=false;
+  }catch(e){$("err1").textContent=explain(e)}
+  $("load").disabled=false;
+});
+function paintVoices(){
+  const box=$("voices");box.textContent="";
+  voices.forEach(v=>{
+    const d=document.createElement("div");d.className="voice"+(v.name===chosen?" sel":"");
+    const l=document.createElement("label"),r=document.createElement("input"),n=document.createElement("span"),g=document.createElement("small");
+    r.type="radio";r.name="voice";r.checked=v.name===chosen;r.addEventListener("change",()=>{chosen=v.name;paintVoices();paintPlan()});
+    n.textContent=v.name.replace(/^sv-SE-/,"").replace("Chirp3-HD-","");
+    g.textContent=v.ssmlGender==="FEMALE"?"kvinna":v.ssmlGender==="MALE"?"man":"";
+    l.append(r,n,g);
+    const b=document.createElement("button");b.type="button";b.className="light";b.textContent="Lyssna";
+    b.addEventListener("click",async()=>{
+      $("err2").textContent="";b.disabled=true;
+      try{const u=await synth($("sample").value.trim()||"Hej!",v.name);new Audio(URL.createObjectURL(new Blob([u],{type:"audio/mpeg"}))).play()}
+      catch(e){$("err2").textContent=explain(e)}
+      b.disabled=false;
+    });
+    d.append(l,b);box.append(d);
+  });
+}
+function paintPlan(){
+  if(!chosen)return;
+  const chars=texts.reduce((n,t)=>n+appWin.spoken(t).length,0);
+  $("plan").textContent="Rösten "+chosen+" läser in "+texts.length+" klipp, sammanlagt ungefär "+chars.toLocaleString("sv-SE")+" tecken. Det tar några minuter. Låt fliken vara öppen.";
+  $("step3").hidden=false;
+}
+function paintProgress(failed){
+  $("bar").max=texts.length;$("bar").value=done.size;
+  $("status").textContent=done.size+" av "+texts.length+" klipp klara."+(failed?" "+failed+" misslyckades, tryck på Skapa klippen igen för att försöka på nytt.":"");
+}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+$("stop").addEventListener("click",()=>{paused=true;$("stop").disabled=true});
+$("go").addEventListener("click",async()=>{
+  if(running||!chosen)return;
+  running=true;paused=false;$("go").disabled=true;$("stop").disabled=false;$("err3").textContent="";$("step4").hidden=true;
+  const voice=chosen,todo=texts.filter(t=>!done.has(appWin.speechId(t)));let failed=0,fatal=null,at=0;
+  const worker=async()=>{
+    while(at<todo.length&&!paused&&!fatal){
+      const t=todo[at++],id=appWin.speechId(t);let ok=false;
+      for(let tryNo=0;tryNo<5&&!ok&&!paused;tryNo++){
+        try{done.set(id,await synth(appWin.spoken(t),voice));ok=true}
+        catch(e){
+          if(e.status&&e.status!==429&&e.status<500){fatal=e;break}
+          await sleep(1500*Math.pow(2,tryNo));
+        }
+      }
+      if(!ok&&!fatal&&!paused)failed++;
+      paintProgress(failed);
+    }
+  };
+  await Promise.all([worker(),worker(),worker()]);
+  running=false;$("go").disabled=false;$("stop").disabled=true;
+  if(fatal){$("err3").textContent=explain(fatal);return}
+  paintProgress(failed);
+  if(paused){$("status").textContent+=" Pausat.";return}
+  if(done.size===texts.length)await pack(voice);
+});
+async function pack(voice){
+  $("status").textContent="Packar filerna …";
+  const ids=texts.map(t=>appWin.speechId(t));
+  const manifest=JSON.stringify({voice,created:new Date().toISOString(),ids});
+  // Flera mindre zip-filer, så att de går att bifoga i en chatt.
+  const LIMIT=7*1024*1024;let parts=[[]],size=0;
+  ids.forEach(id=>{const u=done.get(id);if(size+u.length>LIMIT&&parts[parts.length-1].length){parts.push([]);size=0}parts[parts.length-1].push(id);size+=u.length});
+  const box=$("links");box.textContent="";
+  for(let p=0;p<parts.length;p++){
+    const zip=new JSZip();
+    parts[p].forEach(id=>zip.file("audio/"+id+".mp3",done.get(id)));
+    zip.file("audio/clips.json",manifest);
+    const blob=await zip.generateAsync({type:"blob",compression:"STORE"});
+    const a=document.createElement("a");a.className="dl";a.href=URL.createObjectURL(blob);
+    a.download="roster-del-"+(p+1)+"-av-"+parts.length+".zip";
+    a.textContent="Ladda ner del "+(p+1)+" av "+parts.length+" ("+(blob.size/1048576).toFixed(1)+" MB)";
+    box.append(a);
+  }
+  $("status").innerHTML='<span class="ok">Alla '+ids.length+' klipp är klara.</span>';
+  $("step4").hidden=false;$("step4").scrollIntoView({behavior:"smooth"});
+}
+</script>
+</body>
+</html>
