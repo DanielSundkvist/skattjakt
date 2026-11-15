@@ -332,6 +332,15 @@ canvas#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:non
       <div class="pic" id="dPic"></div>
       <h2 id="dTitle"></h2>
       <p class="label" id="dText"></p>
+      <div class="timer" id="dTimer" hidden><div class="bar"><div class="fill" id="dFill"></div></div><span class="tnum" id="dNum"></span></div>
+      <div class="whogrid" id="dWho" hidden></div>
+      <div class="field" id="dModeField" style="text-align:left">
+        <div class="seg" id="dMode">
+          <button type="button" data-v="free" aria-pressed="true">Bara dansa</button>
+          <button type="button" data-v="race" aria-pressed="false">Tävling</button>
+        </div>
+        <span class="hint" id="dModeHint"></span>
+      </div>
       <button class="primary" type="button" id="dMain"><span class="ico">▶️</span>Starta musiken</button>
     </div>
   </section>
@@ -591,7 +600,7 @@ const ANIMALS=[["🦊","räv"],["🐻","björn"],["🐰","kanin"],["🦉","uggla
 const $=id=>document.getElementById(id);
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const KEY="skattjakt-v1";
-let S={screen:"home",game:"hunt",readAuto:false,char:null,color:null,dance:null,quiz:null,cmode:"turn",ctime:0,qtheme:"jul",qlevel:1,qseen:{},theme:"vanlig",place:"inne",count:6,notes:true,missions:true,kids:2,equal:true,per:3,sound:true,names:["","","",""],voice:"",stops:[],i:0,phase:"clue",chest:{},last:null,lastNew:true,back:"setup",offset:0,nextStart:0,seen:{}};
+let S={screen:"home",game:"hunt",readAuto:false,char:null,color:null,dance:null,quiz:null,cmode:"turn",ctime:0,dmode:"free",qtheme:"jul",qlevel:1,qseen:{},theme:"vanlig",place:"inne",count:6,notes:true,missions:true,kids:2,equal:true,per:3,sound:true,names:["","","",""],voice:"",stops:[],i:0,phase:"clue",chest:{},last:null,lastNew:true,back:"setup",offset:0,nextStart:0,seen:{}};
 const th=()=>T[S.theme]||T.vanlig;
 const syms=()=>S.theme==="jul"?JULSYM:ANIMALS;
 const allPlaces=()=>PLACES[S.place].concat(S.theme==="jul"?JUL[S.place]:[]);
@@ -1101,36 +1110,78 @@ function stopMusic(){
   if(musicTimer){clearInterval(musicTimer);musicTimer=null}
   if(musicGain){try{musicGain.gain.setValueAtTime(1,AC.currentTime);musicGain.gain.linearRampToValueAtTime(0.0001,AC.currentTime+0.06)}catch(e){}musicGain=null}
 }
-function clearDance(){if(danceTimer){clearTimeout(danceTimer);danceTimer=null}stopMusic()}
-function startDance(){S.dance={i:0,phase:"ready",total:6,pose:0};S.game="dance";show("dance")}
+const FREEZE=8;   // sekunder som barnen ska stå stilla
+let freezeTick=null,freezeEnd=0;
+const dRace=()=>S.dmode==="race"&&S.kids>1;
+function clearDance(){
+  if(danceTimer){clearTimeout(danceTimer);danceTimer=null}
+  if(freezeTick){clearInterval(freezeTick);freezeTick=null}
+  stopMusic();
+}
+function startDance(){S.dance={i:0,phase:"ready",total:6,pose:0,race:false,out:[false,false,false,false]};S.game="dance";show("dance")}
+const dLeft=()=>{const D=S.dance,r=[];for(let j=0;j<S.kids;j++)if(!D.out[j])r.push(j);return r};
 function paintDance(){
   hush();
   const D=S.dance,tr=$("dTrail");tr.textContent="";
   for(let j=0;j<D.total;j++){const sp=document.createElement("span");sp.className=j<D.i?"done":j===D.i&&D.phase!=="ready"?"now":"";tr.append(sp)}
-  const pic=$("dPic");pic.classList.toggle("bounce",D.phase==="dance");$("dMain").hidden=D.phase!=="ready";
+  const pic=$("dPic"),who=$("dWho");pic.classList.toggle("bounce",D.phase==="dance");
+  $("dMain").hidden=D.phase!=="ready";$("dModeField").hidden=D.phase!=="ready";$("dTimer").hidden=D.phase!=="freeze";
+  who.hidden=!(D.phase==="freeze"&&D.race);who.textContent="";
   if(D.phase==="ready"){
+    const race=dRace();$("dMode").hidden=S.kids<2;
+    $("dModeHint").textContent=S.kids<2?"Tävling går att välja när minst två barn är med.":race?"Den som rör sig när musiken är tyst åker ut. En vuxen trycker på den som åker ut. Sist kvar vinner.":"Alla dansar hela leken. Ingen åker ut.";
     pic.textContent="🎵";$("dTitle").textContent="Stopdans";
-    $("dText").textContent="Dansa när musiken spelar. Stå blickstilla när den tystnar. Musiken stannar "+D.total+" gånger."+(S.sound?"":" Leken spelar musik även när ljudet är avstängt.");
+    $("dText").textContent="Dansa när musiken spelar. Stå blickstilla i "+FREEZE+" sekunder när den tystnar."+(race?"":" Musiken stannar 6 gånger.")+(S.sound?"":" Leken spelar musik även när ljudet är avstängt.");
   }else if(D.phase==="dance"){
-    pic.textContent="💃";$("dTitle").textContent="Dansa!";$("dText").textContent="Dansa tills musiken tystnar.";
+    pic.textContent="💃";$("dTitle").textContent="Dansa!";
+    $("dText").textContent=D.race?"Kvar på dansgolvet: "+dLeft().map(kidName).join(", ")+".":"Dansa tills musiken tystnar.";
   }else{
-    const p=POSES[D.pose];pic.textContent=p[0];$("dTitle").textContent="STOPP!";$("dText").textContent="Stå blickstilla som "+p[1]+"!";
-    say("Stopp! Stå blickstilla som "+p[1]+"!");
+    const p=POSES[D.pose];pic.textContent=p[0];$("dTitle").textContent="STOPP!";
+    $("dText").textContent="Stå blickstilla som "+p[1]+"!"+(D.race?" Rörde sig någon? Tryck på den som åker ut.":"");
+    if(D.race)dLeft().forEach(j=>{
+      const b=document.createElement("button");b.type="button";b.style.background=KIDCOL[j];lab(b,"🚫",kidName(j));
+      b.addEventListener("click",()=>danceOut(j));who.append(b);
+    });
   }
+}
+function danceBegin(){
+  const D=S.dance;D.race=dRace();D.total=D.race?10:6;D.i=0;D.out=[false,false,false,false];
+  danceRound();
 }
 function danceRound(){
   const D=S.dance;D.phase="dance";save();paintDance();startMusic();
   danceTimer=setTimeout(danceFreeze,6000+Math.random()*8000);
 }
 function danceFreeze(){
-  const D=S.dance;stopMusic();
+  const D=S.dance;danceTimer=null;stopMusic();
   const ac=musicCtx();if(ac)note(ac,43,ac.currentTime+0.02,0.35,"square",0.15);
   D.phase="freeze";D.pose=(D.pose+1+Math.floor(Math.random()*(POSES.length-1)))%POSES.length;save();paintDance();
-  danceTimer=setTimeout(()=>{
-    danceTimer=null;
-    if(D.i>=D.total-1){award("lek");show("win");confetti();hurra();return}
-    D.i++;danceRound();
-  },5000);
+  say("Stopp! Stå blickstilla som "+POSES[D.pose][1]+"!");
+  freezeEnd=Date.now()+FREEZE*1000;
+  const tick=()=>{
+    const ms=freezeEnd-Date.now(),left=Math.max(0,Math.ceil(ms/1000));
+    $("dNum").textContent=String(left);$("dFill").style.width=Math.max(0,ms/(FREEZE*10))+"%";
+    if(left<=0)danceAfterFreeze();
+  };
+  tick();freezeTick=setInterval(tick,250);
+}
+function danceAfterFreeze(){
+  const D=S.dance;if(freezeTick){clearInterval(freezeTick);freezeTick=null}
+  if(D.i>=D.total-1||(D.race&&dLeft().length<=1)){danceWin();return}
+  D.i++;danceRound();
+}
+function danceOut(j){
+  const D=S.dance;if(D.phase!=="freeze"||D.out[j])return;
+  D.out[j]=true;const ac=audio();if(ac)note(ac,50,ac.currentTime+0.01,0.25,"triangle",0.25);
+  if(dLeft().length<=1){if(freezeTick){clearInterval(freezeTick);freezeTick=null}danceWin();return}
+  save();paintDance();
+}
+function danceWin(){clearDance();S.dance.phase="ready";award("lek");show("win");confetti();hurra()}
+function danceWinText(){
+  const D=S.dance;if(!D.race)return WIN.dance;
+  const ws=dLeft().map(kidName);
+  if(ws.length===1)return["🪩",ws[0]+" vann!","Sist kvar på dansgolvet. Bra dansat, allihop."];
+  return["🪩","Oavgjort!",ws.slice(0,-1).join(", ")+" och "+ws[ws.length-1]+" stod kvar till slutet."];
 }
 /* En ledtråd är löst: visa stjärnor, sedan uppdrag om platsen har ett, sedan nästa ledtråd. */
 function foundStop(){
@@ -1164,12 +1215,12 @@ function show(name){
   if(name==="csetup")paintColorSetup();
   if(name==="qsetup")paintQuizSetup();
   if(name==="quiz")paintQuiz();
-  if(name==="dance"){if(S.dance.phase!=="ready"&&!danceTimer){S.dance.phase="ready"}paintDance()}
+  if(name==="dance"){if(S.dance.phase!=="ready"&&!danceTimer&&!freezeTick){S.dance.phase="ready"}if(!S.dance.out)S.dance.out=[false,false,false,false];paintDance()}
   $("title").textContent=({home:"Familjens lekar",char:"Djurcharader",csetup:"Färgjakten",color:"Färgjakten",dance:"Stopdans",qsetup:"Frågesport",quiz:"Frågesport",chest:"Skattkistan"})[name]||((name==="win"&&S.game!=="hunt")?"Familjens lekar":th().title);
   if(name==="chest")paintChest();
   if(name==="prep")paintPrep();
   if(name==="hunt")paintHunt();
-  if(name==="win"){paintBadge();$("replay").hidden=!S.sound;const w=S.game==="color"&&S.color?colorWinText():WIN[S.game];
+  if(name==="win"){paintBadge();$("replay").hidden=!S.sound;const w=S.game==="color"&&S.color?colorWinText():S.game==="dance"&&S.dance?danceWinText():WIN[S.game];
     $("winIcon").textContent=w?w[0]:th().icon;$("winTitle").textContent=w?w[1]:th().win;$("winText").textContent=w?w[2]:th().winText;
     if(S.game==="quiz"&&S.quiz){$("winIcon").textContent="🏅";$("winTitle").textContent="Bra jobbat!";$("winText").textContent="Ni fick "+S.quiz.stars+" av "+S.quiz.total+" stjärnor. En stjärna betyder rätt svar på första försöket."}}
   save();window.scrollTo(0,0);
@@ -1211,7 +1262,8 @@ $("qListen2").addEventListener("click",()=>speak(quizSpeech()));
 $("fMain").addEventListener("click",colorMain);
 $("fSkip").addEventListener("click",colorSkip);
 $("fListen").addEventListener("click",()=>{if(S.colorSpeech)speak(S.colorSpeech)});
-$("dMain").addEventListener("click",danceRound);
+$("dMain").addEventListener("click",danceBegin);
+seg("dMode",()=>S.dmode,v=>{S.dmode=v;if(S.dance)paintDance()});
 $("cMain").addEventListener("click",charMain);
 $("cSkip").addEventListener("click",charSkip);
 $("cListen").addEventListener("click",()=>{if(S.charSpeech)speak(S.charSpeech)});
