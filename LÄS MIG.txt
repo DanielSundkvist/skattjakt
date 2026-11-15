@@ -10,5 +10,5 @@ för att kunna installeras på telefonen.
    Android: öppna i Chrome, tryck på menyn och välj "Installera app" eller "Lägg till på startskärmen".
 3. Starta appen från ikonen. Efter första besöket fungerar den även utan nät.
 
-När du ändrar något i filerna: höj versionen i sw.js (skattjakt-v1 till skattjakt-v2),
-annars visar telefonerna den gamla versionen.
+Appen hämtar senaste versionen från nätet varje gång den öppnas.
+Utan nät används den version som sparades senast.
