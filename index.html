@@ -85,6 +85,16 @@ select{font:inherit;font-weight:700;padding:12px 14px;border-radius:14px;border:
 .game .gname{font-family:var(--display);font-weight:800;font-size:22px;line-height:1.1}
 .game .gsub{font-size:14px;font-weight:700;opacity:.75;line-height:1.25}
 .kidbtn{min-height:64px;font-size:20px}
+.opts{display:flex;flex-direction:column;gap:10px}
+.opts button{min-height:68px;font-size:20px;justify-content:flex-start;text-align:left;padding:12px 16px}
+.opts button .ico{font-size:38px}
+.opts button.wrong{animation:shake .4s;background:#ffd9d3;opacity:.7}
+.themes{display:grid;grid-template-columns:1fr;gap:8px}
+.themes button{justify-content:flex-start;text-align:left;gap:12px;min-height:72px}
+.themes button .ico{font-size:40px}
+.themes button .tx{display:flex;flex-direction:column;line-height:1.2}
+.themes button .tx small{font-weight:700;font-size:14px;opacity:.8}
+.fact{font-size:19px;font-weight:700;text-wrap:balance}
 .swatch{width:170px;height:170px;margin:0 auto;border:5px solid #12333B;border-radius:28px;background:#fff}
 .bounce{animation:bounce .45s ease-in-out infinite alternate}
 @keyframes bounce{to{transform:translateY(-14px) rotate(6deg)}}
@@ -129,6 +139,7 @@ canvas#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:non
       <button type="button" class="game" id="goChar"><span class="ico">🐒</span><span class="gname">Djurcharader</span><span class="gsub">Härma ett djur, de andra gissar</span></button>
       <button type="button" class="game" id="goColor"><span class="ico">🌈</span><span class="gname">Färgjakten</span><span class="gsub">Hämta något i rätt färg</span></button>
       <button type="button" class="game" id="goDance"><span class="ico">💃</span><span class="gname">Stopdans</span><span class="gsub">Dansa, och stå stilla när det tystnar</span></button>
+      <button type="button" class="game" id="goQuiz"><span class="ico">❓</span><span class="gname">Frågesport</span><span class="gsub">Välj tema och nivå</span></button>
     </div>
     <div class="field">
       <span class="label">Hur många barn är med?</span>
@@ -292,6 +303,45 @@ canvas#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:non
     </div>
   </section>
 
+  <!-- 3e. Frågesport: val av tema och nivå -->
+  <section class="card" id="qsetup" hidden>
+    <h2>Frågesport</h2>
+    <div class="field">
+      <span class="label">Välj tema</span>
+      <div class="themes" id="qThemes"></div>
+    </div>
+    <div class="field">
+      <span class="label">Svårighetsgrad</span>
+      <div class="seg" id="qLevel">
+        <button type="button" data-v="1" aria-pressed="true">Lätt</button>
+        <button type="button" data-v="2" aria-pressed="false">Medel</button>
+        <button type="button" data-v="3" aria-pressed="false">Svår</button>
+      </div>
+      <span class="hint" id="qLevelHint"></span>
+    </div>
+    <button class="primary" type="button" id="qStart"><span class="ico">▶️</span>Starta frågesporten</button>
+  </section>
+
+  <!-- 3f. Frågesport: frågorna -->
+  <section id="quiz" hidden style="display:flex;flex-direction:column;gap:16px">
+    <div class="trail" id="qTrail" aria-hidden="true"></div>
+    <div class="turn pop" id="qTurn"><span class="lbl">Nu svarar</span><span class="who" id="qName"></span></div>
+    <div class="card" id="qAsk">
+      <p class="label" id="qNo"></p>
+      <p class="riddle" id="qText"></p>
+      <button type="button" class="kidbtn" id="qListen"><span class="ico">🔊</span>Lyssna</button>
+      <div class="opts" id="qOpts"></div>
+      <p class="msg" id="qMsg" role="status"></p>
+    </div>
+    <div class="card center" id="qRight" hidden>
+      <div class="stars pop" id="qStars" aria-hidden="true"></div>
+      <h2 id="qRightTitle"></h2>
+      <p class="fact" id="qFact"></p>
+      <button type="button" class="kidbtn" id="qListen2"><span class="ico">🔊</span>Lyssna</button>
+      <button class="primary" type="button" id="qNext"></button>
+    </div>
+  </section>
+
   <!-- 4. Skatten är hittad -->
   <section class="card center" id="win" hidden>
     <div class="big pop" id="winIcon">🏆</div>
@@ -396,6 +446,103 @@ const BADGES={
  jul:[["🎅","Tomteluvan"],["🦌","Renen"],["⭐","Julstjärnan"],["🎄","Granen"],["🔔","Bjällran"],["🍪","Pepparkakan"],["⛄","Snögubben"],["🕯️","Ljuset"],["🎁","Klappen"],["❄️","Snöflingan"],["🧦","Julstrumpan"],["🛷","Släden"]]
 };
 BADGES.lek=[["🐒","Apan"],["🐘","Elefanten"],["🐧","Pingvinen"],["🦘","Kängurun"],["🦒","Giraffen"],["🦋","Fjärilen"],["🌈","Regnbågen"],["🎨","Paletten"],["💃","Dansaren"],["🎵","Noten"],["🗿","Statyn"],["🪩","Discokulan"]];
+BADGES.lek.push(["🏅","Medaljen"],["💡","Idén"],["📚","Boken"]);
+/* Frågesport. Varje fråga: [fråga, rätt svar, fel svar, fel svar, förklaring]. Nivå 1 lätt, 2 medel, 3 svår. */
+const QUIZ={
+ jul:{name:"Julen",ico:"🎄",sub:"Berättelsen om när Jesus föddes",q:{
+  1:[
+   ["Vem föddes på den första julen?","👶 Jesus","🎅 Tomten","⛄ Snögubben","Julen firas till minne av att Jesus föddes."],
+   ["Var föddes Jesus?","🐴 I ett stall","🏰 I ett slott","⛵ På en båt","Det fanns ingen plats i härbärget, så Jesus föddes i ett stall bland djuren."],
+   ["Vad hette Jesus mamma?","Maria","Eva","Sara","Maria var Jesus mamma. Hon litade på Gud."],
+   ["Vad lyste på himlen när Jesus hade fötts?","⭐ En stor stjärna","🌈 En regnbåge","⚡ En blixt","En stjärna visade vägen till platsen där Jesus fanns."],
+   ["Vilka vaktade sina får på natten och fick höra att Jesus var född?","🐑 Herdarna","🎣 Fiskarna","🍞 Bagarna","Herdarna skyndade sig till stallet för att se barnet."],
+   ["Vem berättade för herdarna att Jesus var född?","👼 En ängel","🐦 En fågel","👑 En kung","Ängeln sa att de inte skulle vara rädda, för han kom med glada nyheter."],
+   ["Vad fick Jesus ligga i som säng?","🌾 En krubba med hö","🛏️ En stor säng","🛷 En släde","En krubba är en matlåda för djur. Där la Maria sitt barn."],
+   ["Varför firar vi jul?","🎂 För att Jesus föddes","❄️ För att det snöar","🎁 För att få klappar","Julen är Jesus födelsedag. Kristna tror att han är Guds son."]
+  ],
+  2:[
+   ["I vilken stad föddes Jesus?","Betlehem","Stockholm","Rom","Maria och Josef reste till Betlehem, och där föddes Jesus."],
+   ["Vad hette Marias man?","Josef","Petrus","Noa","Josef tog hand om Maria och Jesus."],
+   ["Vilka kom från ett land långt borta med gåvor till Jesus?","👑 De vise männen","🎅 Tomtenissarna","⚔️ Riddarna","De vise männen följde stjärnan för att hitta den nyfödde kungen."],
+   ["Vilka gåvor hade de vise männen med sig?","Guld, rökelse och myrra","Leksaker, godis och kakor","Bröd, fisk och honung","Gåvorna var dyrbara och visade att Jesus var en kung."],
+   ["Hur många söndagar finns det i advent?","Fyra","Två","Tio","Varje söndag i advent tänder vi ett ljus till och väntar på att fira Jesus födelse."],
+   ["Varför föddes Jesus i ett stall?","Det fanns ingen plats i härbärget","Maria tyckte om djur","Det regnade ute","Betlehem var fullt av resande, så de fick sova bland djuren."],
+   ["Vad sjöng änglarna om för herdarna?","Ära till Gud och fred på jorden","En vaggvisa för fåren","Att det skulle bli snö","En stor skara änglar lovade Gud den natten."],
+   ["Vad betyder ordet advent?","Att någon ska komma","Att det är vinter","Att man ger presenter","Advent betyder ankomst. Vi väntar på att fira att Jesus kom till världen."]
+  ],
+  3:[
+   ["Vilken ängel berättade för Maria att hon skulle föda Jesus?","Gabriel","Mikael","Rafael","Ängeln Gabriel kom till Maria i Nasaret med budskapet."],
+   ["Från vilken stad reste Maria och Josef till Betlehem?","Nasaret","Jerusalem","Jeriko","De bodde i Nasaret i Galileen och reste till Betlehem för att skattskrivas."],
+   ["Vilken kejsare bestämde att alla skulle skattskrivas?","Augustus","Nero","Konstantin","Kejsar Augustus befallde att alla skulle skattskrivas, var och en i sin stad."],
+   ["Vilken kung blev orolig när han hörde att en ny kung hade fötts?","Herodes","David","Salomo","Kung Herodes ville inte ha någon annan kung än sig själv."],
+   ["Vad betyder namnet Immanuel, som Jesus också kallas?","Gud med oss","Fredens kung","Ljusets barn","Kristna tror att Gud kom nära människorna genom Jesus."],
+   ["I vilka två evangelier berättas det om Jesus födelse?","Matteus och Lukas","Markus och Johannes","Petrus och Paulus","Lukas berättar om herdarna, och Matteus berättar om de vise männen."],
+   ["Vad firar kyrkan på trettondagen?","Att de vise männen kom till Jesus","Att julgranen kastas ut","Att Jesus fyllde tretton år","Trettondagen är den 6 januari. Då minns vi att de vise männen hittade Jesus."],
+   ["Varifrån kom de vise männen enligt Bibeln?","Från Östern","Från Egypten","Från Rom","De kom österifrån och följde stjärnan till Betlehem."]
+  ]}},
+ djur:{name:"Djur",ico:"🐾",sub:"Från bondgården till djungeln",q:{
+  1:[
+   ["Vilket djur säger mu?","🐄 Kon","🐷 Grisen","🐑 Fåret","Kon säger mu och ger oss mjölk."],
+   ["Vilket djur har en lång snabel?","🐘 Elefanten","🐴 Hästen","🐱 Katten","Elefanten dricker och plockar mat med snabeln."],
+   ["Vilket djur hoppar och säger kvack?","🐸 Grodan","🐟 Fisken","🐭 Musen","Grodor hoppar långt och bor gärna nära vatten."],
+   ["Vilket djur är randigt i svart och vitt?","🦓 Zebran","🐻 Björnen","🐷 Grisen","Ingen zebra har precis samma ränder som en annan."],
+   ["Vilket djur lägger ägg som vi äter till frukost?","🐔 Hönan","🐶 Hunden","🐰 Kaninen","Hönan värper ägg."],
+   ["Vilket djur kan flyga?","🐦 Fågeln","🐢 Sköldpaddan","🐍 Ormen","Fåglar har vingar och fjädrar."],
+   ["Vilket djur har en väldigt lång hals?","🦒 Giraffen","🐷 Grisen","🦆 Ankan","Giraffen når löven högst upp i träden."],
+   ["Vilket djur bor i vattnet?","🐟 Fisken","🐴 Hästen","🐔 Hönan","Fiskar andas under vattnet."]
+  ],
+  2:[
+   ["Vad äter en kanin helst?","🥕 Morötter och gräs","🍖 Kött","🐟 Fisk","Kaniner äter bara växter."],
+   ["Vilket djur sover hela vintern i ett ide?","🐻 Björnen","🦊 Räven","🐦 Talgoxen","Björnen går i ide på hösten och vaknar på våren."],
+   ["Hur många ben har en spindel?","Åtta","Sex","Fyra","Spindlar har åtta ben. Insekter har sex."],
+   ["Vad heter hästens unge?","Föl","Kalv","Kid","En liten häst kallas föl."],
+   ["Vilket är världens största djur?","🐋 Blåvalen","🐘 Elefanten","🦒 Giraffen","Blåvalen kan bli ungefär 30 meter lång."],
+   ["Vilket djur bygger dammar i bäckar?","🦫 Bävern","🦔 Igelkotten","🐿️ Ekorren","Bävern fäller träd med sina vassa framtänder."],
+   ["Vad blir ett grodyngel när det växer upp?","🐸 En groda","🐟 En fisk","🦎 En ödla","Grodyngel simmar i vattnet och får ben när de växer."],
+   ["Vilken fågel är vaken på natten och säger ho-ho?","🦉 Ugglan","🦆 Ankan","🐓 Tuppen","Ugglor jagar på natten och ser bra i mörker."]
+  ],
+  3:[
+   ["Vilket landdjur springer snabbast?","Geparden","Lejonet","Hästen","Geparden kan springa i ungefär 100 kilometer i timmen."],
+   ["Vilket djur är Finlands nationaldjur?","Björnen","Älgen","Vargen","Brunbjörnen är Finlands nationaldjur."],
+   ["Hur många hjärtan har en bläckfisk?","Tre","Ett","Två","Bläckfiskar har tre hjärtan."],
+   ["Vilket av de här djuren är ett däggdjur?","Delfinen","Hajen","Laxen","Delfiner andas luft och ger sina ungar mjölk."],
+   ["Vad kallas djur som bara äter växter?","Växtätare","Rovdjur","Allätare","Kor, hästar och kaniner är växtätare."],
+   ["Vilken fågel kan inte flyga men simmar väldigt bra?","Pingvinen","Svalan","Örnen","Pingviner använder vingarna som fenor under vattnet."],
+   ["Hur andas en fisk under vattnet?","Med gälar","Med lungor","Med näsan","Gälarna tar upp syre ur vattnet."],
+   ["Vilket djur kan byta färg på huden?","Kameleonten","Krokodilen","Sköldpaddan","Kameleonten kan ändra färg på sin hud."]
+  ]}},
+ natur:{name:"Naturen och rymden",ico:"🌍",sub:"Väder, växter och planeter",q:{
+  1:[
+   ["Vad lyser på himlen på dagen?","☀️ Solen","🌙 Månen","⭐ Stjärnorna","Solen ger oss ljus och värme."],
+   ["Vilken färg har gräset på sommaren?","🟢 Grönt","🔴 Rött","🔵 Blått","Gräset är grönt när det växer."],
+   ["Vad faller från molnen när det regnar?","💧 Vatten","🍂 Löv","🪨 Stenar","Regnet ger växterna vatten."],
+   ["Vad faller från himlen på vintern?","❄️ Snö","🍎 Äpplen","🌸 Blommor","Snö är fruset vatten."],
+   ["Vad växer äpplen på?","🌳 Ett träd","🌷 En tulpan","🍄 En svamp","Äpplen växer på äppelträd."],
+   ["Vad ser du på himlen när det är natt?","🌙 Månen och stjärnorna","☀️ Solen","🌈 Regnbågen","På natten syns månen och stjärnorna."],
+   ["Vad behöver en blomma för att växa?","💧 Vatten och sol","🍫 Choklad","🧦 Strumpor","Växter behöver vatten, ljus och jord."],
+   ["Vilken årstid är varmast?","🌞 Sommaren","⛄ Vintern","🍂 Hösten","På sommaren är dagarna långa och varma."]
+  ],
+  2:[
+   ["Hur många årstider har vi?","Fyra","Två","Sex","Vår, sommar, höst och vinter."],
+   ["Vad heter planeten som vi bor på?","🌍 Jorden","🪐 Saturnus","🔴 Mars","Jorden är vår planet."],
+   ["Vad blir vatten när det fryser?","🧊 Is","💨 Ånga","🧂 Salt","Vatten fryser till is när det blir kallare än noll grader."],
+   ["Vad kan du se på himlen när solen skiner medan det regnar?","🌈 En regnbåge","⚡ En blixt","🌙 En fullmåne","Solljuset delas upp i färger i regndropparna."],
+   ["Vad händer med lövträdens löv på hösten?","De byter färg och faller av","De blir större","De blir blå","Träden tappar löven före vintern."],
+   ["Vad går jorden runt?","☀️ Solen","🌙 Månen","⭐ Polstjärnan","Jorden går ett varv runt solen på ett år."],
+   ["Vilka gör honung?","🐝 Bin","🐄 Kor","🐜 Myror","Bin samlar nektar från blommor och gör honung."],
+   ["Vad kallas det när det blixtrar och mullrar?","⛈️ Åska","🌪️ Storm","🌫️ Dimma","Blixten syns först, och sedan hörs mullret."]
+  ],
+  3:[
+   ["Hur många planeter finns det i vårt solsystem?","Åtta","Sju","Tolv","Merkurius, Venus, jorden, Mars, Jupiter, Saturnus, Uranus och Neptunus."],
+   ["Vilken planet är störst i solsystemet?","Jupiter","Saturnus","Jorden","Jupiter är större än alla andra planeter tillsammans."],
+   ["Hur lång tid tar det för jorden att gå ett varv runt solen?","Ett år","En månad","En dag","Ett varv runt solen tar ungefär 365 dagar."],
+   ["Vad kallas det när månen skymmer solen?","Solförmörkelse","Norrsken","Fullmåne","Vid en solförmörkelse hamnar månen mellan jorden och solen."],
+   ["Vilken gas i luften behöver kroppen när vi andas?","Syre","Koldioxid","Helium","Växterna ger ifrån sig syre."],
+   ["Vad kallas ljuset som dansar på himlen i norr om vintern?","Norrsken","Regnbåge","Stjärnfall","Norrsken syns ofta i norra Finland."],
+   ["Vilken är Finlands största sjö?","Saimen","Päijänne","Enare träsk","Saimen är Finlands största sjö."],
+   ["Vad är solen?","En stjärna","En planet","En måne","Solen är den stjärna som ligger närmast jorden."]
+  ]}}
+};
 /* Färgjakten: [namn i neutrum, bakgrund, rundad som cirkel] */
 const HUES=[["rött","#E53935"],["blått","#1E63D5"],["gult","#FFD21F"],["grönt","#2E9E4F"],["orange","#FF8A1F"],["lila","#8E44C9"],["rosa","#FF8FB8"],["svart","#1A1A1A"],["vitt","#FFFFFF"],["brunt","#8B5A2B"],
  ["runt","#FFFFFF",true],["fyrkantigt","#FFFFFF"],
@@ -411,7 +558,7 @@ const ANIMALS=[["🦊","räv"],["🐻","björn"],["🐰","kanin"],["🦉","uggla
 const $=id=>document.getElementById(id);
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const KEY="skattjakt-v1";
-let S={screen:"home",game:"hunt",readAuto:false,char:null,color:null,dance:null,theme:"vanlig",place:"inne",count:6,notes:true,missions:true,kids:2,equal:true,per:3,sound:true,names:["","","",""],voice:"",stops:[],i:0,phase:"clue",chest:{},last:null,lastNew:true,back:"setup",offset:0,nextStart:0,seen:{}};
+let S={screen:"home",game:"hunt",readAuto:false,char:null,color:null,dance:null,quiz:null,qtheme:"jul",qlevel:1,qseen:{},theme:"vanlig",place:"inne",count:6,notes:true,missions:true,kids:2,equal:true,per:3,sound:true,names:["","","",""],voice:"",stops:[],i:0,phase:"clue",chest:{},last:null,lastNew:true,back:"setup",offset:0,nextStart:0,seen:{}};
 const th=()=>T[S.theme]||T.vanlig;
 const syms=()=>S.theme==="jul"?JULSYM:ANIMALS;
 const allPlaces=()=>PLACES[S.place].concat(S.theme==="jul"?JUL[S.place]:[]);
@@ -769,6 +916,70 @@ function colorSkip(){
   const C=S.color;if(!C.spare.length)return;
   const old=C.list[C.i];C.list[C.i]=C.spare.shift();C.spare.push(old);save();paintColor();
 }
+/* ---------- Frågesport ---------- */
+const plain=t=>t.replace(/^[^\p{L}\d]+/u,"");
+const icoOf=t=>{const m=/^([^\p{L}\d\s]+)\s+(.*)$/u.exec(t);return m?[m[1],m[2]]:["",t]};
+function paintQuizSetup(){
+  const box=$("qThemes");box.textContent="";
+  Object.keys(QUIZ).forEach(key=>{
+    const t=QUIZ[key],b=document.createElement("button"),i=document.createElement("span"),tx=document.createElement("span"),sm=document.createElement("small");
+    b.type="button";b.setAttribute("aria-pressed",String(S.qtheme===key));
+    i.className="ico";i.textContent=t.ico;tx.className="tx";sm.textContent=t.sub;tx.append(t.name,sm);b.append(i,tx);
+    b.addEventListener("click",()=>{S.qtheme=key;save();paintQuizSetup()});
+    box.append(b);
+  });
+  $("qLevelHint").textContent=["","Lätt passar barn på 4 till 5 år. De flesta svar har en bild.","Medel passar barn på 6 till 8 år.","Svår passar äldre barn och vuxna."][S.qlevel]||"";
+}
+function startQuiz(){
+  if(!QUIZ[S.qtheme])S.qtheme="jul";
+  const pool=QUIZ[S.qtheme].q[S.qlevel],total=Math.min(pool.length,Math.ceil(6/S.kids)*S.kids),key=S.qtheme+S.qlevel;
+  S.qseen=S.qseen||{};
+  // Frågor som inte var med förra gången kommer först.
+  const last=S.qseen[key]||[],all=pool.map((_,k)=>k);
+  const list=shuffle(all.filter(k=>!last.includes(k))).concat(shuffle(all.filter(k=>last.includes(k)))).slice(0,total);
+  S.qseen[key]=list.slice();
+  S.quiz={theme:S.qtheme,level:S.qlevel,list:shuffle(list),i:0,phase:"ask",total,stars:0,tries:0,order:shuffle([1,2,3]),offset:(S.nextStart||0)%Math.max(1,S.kids)};
+  S.nextStart=S.quiz.offset+1;S.game="quiz";show("quiz");
+}
+function quizSpeech(){
+  const Q=S.quiz,q=QUIZ[Q.theme].q[Q.level][Q.list[Q.i]];
+  if(Q.phase==="right")return"Rätt! "+q[4];
+  const o=Q.order.map(k=>plain(q[k]));
+  return q[0]+" Är det "+o[0]+", "+o[1]+", eller "+o[2]+"?";
+}
+function paintQuiz(){
+  hush();
+  const Q=S.quiz,q=QUIZ[Q.theme].q[Q.level][Q.list[Q.i]],k=(Q.i+Q.offset)%Math.max(1,S.kids);
+  const tr=$("qTrail");tr.textContent="";
+  for(let j=0;j<Q.total;j++){const sp=document.createElement("span");sp.className=j<Q.i?"done":j===Q.i?"now":"";tr.append(sp)}
+  $("qTurn").hidden=S.kids<2;$("qName").textContent=kidName(k);$("qTurn").dataset.kid=String(k);
+  const ask=Q.phase==="ask";$("qAsk").hidden=!ask;$("qRight").hidden=ask;
+  $("qListen").hidden=$("qListen2").hidden=!canSpeak;
+  if(ask){
+    $("qNo").textContent=QUIZ[Q.theme].name+": fråga "+(Q.i+1)+" av "+Q.total;$("qText").textContent=q[0];$("qMsg").textContent="";
+    const box=$("qOpts");box.textContent="";
+    Q.order.forEach(n=>{
+      const b=document.createElement("button"),p=icoOf(q[n]);b.type="button";
+      if(p[0]){const i=document.createElement("span");i.className="ico";i.textContent=p[0];b.append(i)}
+      b.append(p[1]);
+      b.addEventListener("click",()=>{
+        if(n===1){ding();if(Q.tries===0)Q.stars++;Q.phase="right";save();paintQuiz();window.scrollTo(0,0)}
+        else{Q.tries++;b.disabled=true;b.classList.add("wrong");$("qMsg").textContent="Inte riktigt. Försök en gång till!";say($("qMsg").textContent);save()}
+      });
+      box.append(b);
+    });
+  }else{
+    $("qStars").textContent=Q.tries===0?"⭐":"👍";
+    $("qRightTitle").textContent="Rätt! "+plain(q[1]);$("qFact").textContent=q[4];
+    if(Q.i>=Q.total-1)lab($("qNext"),"🎉","Klart!");else lab($("qNext"),"➡️","Nästa fråga");
+  }
+  say(quizSpeech());
+}
+function quizNext(){
+  const Q=S.quiz;
+  if(Q.i>=Q.total-1){hush();award("lek");show("win");confetti();hurra();return}
+  Q.i++;Q.phase="ask";Q.tries=0;Q.order=shuffle([1,2,3]);save();paintQuiz();window.scrollTo(0,0);
+}
 /* ---------- Stopdans ---------- */
 const MEL=[72,76,79,76,72,76,79,84, 77,81,84,81,77,81,84,81, 79,83,86,83,79,77,76,74, 72,0,79,0,72,72,72,0];
 const BASS=[48,53,55,48];
@@ -845,18 +1056,21 @@ function next(){
 function show(name){
   S.screen=name;
   if(name!=="dance")clearDance();
-  ["home","setup","prep","hunt","char","color","dance","win","chest"].forEach(id=>$(id).hidden=id!==name);
+  ["home","setup","prep","hunt","char","color","dance","qsetup","quiz","win","chest"].forEach(id=>$(id).hidden=id!==name);
   $("restart").hidden=name==="home"||name==="chest";
-  $("openChest").hidden=["hunt","char","color","dance","chest"].includes(name);
+  $("openChest").hidden=["hunt","char","color","dance","quiz","chest"].includes(name);
   if(name==="char")paintChar();
   if(name==="color")paintColor();
+  if(name==="qsetup")paintQuizSetup();
+  if(name==="quiz")paintQuiz();
   if(name==="dance"){if(S.dance.phase!=="ready"&&!danceTimer){S.dance.phase="ready"}paintDance()}
-  $("title").textContent=name==="home"?"Familjens lekar":name==="char"?"Djurcharader":name==="color"?"Färgjakten":name==="dance"?"Stopdans":name==="chest"?"Skattkistan":th().title;
+  $("title").textContent=name==="home"?"Familjens lekar":name==="char"?"Djurcharader":name==="color"?"Färgjakten":name==="dance"?"Stopdans":(name==="quiz"||name==="qsetup")?"Frågesport":name==="chest"?"Skattkistan":th().title;
   if(name==="chest")paintChest();
   if(name==="prep")paintPrep();
   if(name==="hunt")paintHunt();
   if(name==="win"){paintBadge();$("replay").hidden=!S.sound;const w=WIN[S.game];
-    $("winIcon").textContent=w?w[0]:th().icon;$("winTitle").textContent=w?w[1]:th().win;$("winText").textContent=w?w[2]:th().winText}
+    $("winIcon").textContent=w?w[0]:th().icon;$("winTitle").textContent=w?w[1]:th().win;$("winText").textContent=w?w[2]:th().winText;
+    if(S.game==="quiz"&&S.quiz){$("winIcon").textContent="🏅";$("winTitle").textContent="Bra jobbat!";$("winText").textContent="Ni fick "+S.quiz.stars+" av "+S.quiz.total+" stjärnor. En stjärna betyder rätt svar på första försöket."}}
   save();window.scrollTo(0,0);
 }
 function confetti(){
@@ -884,6 +1098,12 @@ $("goHunt").addEventListener("click",()=>{S.game="hunt";show("setup")});
 $("goChar").addEventListener("click",()=>{audio();startChar()});
 $("goColor").addEventListener("click",()=>{audio();startColor()});
 $("goDance").addEventListener("click",startDance);
+$("goQuiz").addEventListener("click",()=>show("qsetup"));
+seg("qLevel",()=>S.qlevel,v=>{S.qlevel=+v;paintQuizSetup()});
+$("qStart").addEventListener("click",()=>{audio();startQuiz()});
+$("qNext").addEventListener("click",quizNext);
+$("qListen").addEventListener("click",()=>speak(quizSpeech()));
+$("qListen2").addEventListener("click",()=>speak(quizSpeech()));
 $("fMain").addEventListener("click",colorMain);
 $("fSkip").addEventListener("click",colorSkip);
 $("fListen").addEventListener("click",()=>{if(S.colorSpeech)speak(S.colorSpeech)});
@@ -916,8 +1136,8 @@ $("again").addEventListener("click",()=>show("home"));
 $("restart").addEventListener("click",()=>{hush();show("home")});
 paintSetup();
 (function(){
-  const sc=S.screen,ok=["home","setup","prep","hunt","char","color","dance","win","chest"].includes(sc)
-    &&!((sc==="prep"||sc==="hunt")&&!S.stops.length)&&!(sc==="char"&&!S.char)&&!(sc==="color"&&!S.color)&&!(sc==="dance"&&!S.dance);
+  const sc=S.screen,ok=["home","setup","prep","hunt","char","color","dance","win","chest"].concat(["qsetup","quiz"]).includes(sc)
+    &&!(sc==="quiz"&&!S.quiz)&&!((sc==="prep"||sc==="hunt")&&!S.stops.length)&&!(sc==="char"&&!S.char)&&!(sc==="color"&&!S.color)&&!(sc==="dance"&&!S.dance);
   show(ok?sc:"home");
 })();
 </script>
