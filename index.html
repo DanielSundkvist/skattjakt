@@ -895,8 +895,8 @@ function speak(text){
 function say(text){if(S.readAuto===true)speak(text)}
 function hush(){
   talkTok++;
-  if(player){try{player.onended=null;player.onerror=null;player.pause()}catch(e){}}
-  if(canSpeak){try{speechSynthesis.cancel()}catch(e){}}
+  if(player){try{player.onended=null;player.onerror=null;if(!player.paused)player.pause()}catch(e){}}
+  if(canSpeak){try{if(speechSynthesis.speaking||speechSynthesis.pending)speechSynthesis.cancel()}catch(e){}}
 }
 /* Delar en gåta i beskrivning och uppmaningen att leta. */
 function riddleParts(r){const m=/^(.*[.!?])\s+([^.!?]+[.!?])$/.exec(r);return m?[m[1],m[2]]:[r,""]}
@@ -1285,7 +1285,6 @@ function colorMain(){
 const TIDY=60;let tidyStart=0;
 function startTidy(){
   const C=S.color;stopColorTimer();C.phase="tidy";C.tidyLate=false;C.tidySecs=0;
-  if(S.sound)startMusic();
   tidyStart=Date.now();colorEnd=tidyStart+TIDY*1000;
   const tick=()=>{
     const ms=colorEnd-Date.now(),left=Math.max(0,Math.ceil(ms/1000));
@@ -1296,6 +1295,8 @@ function startTidy(){
     }
   };
   colorTick=setInterval(tick,250);save();paintColor();tick();
+  // Musiken startas sist. På iPhone kan den annars tystas när uppläsningen stängs av.
+  if(S.sound)startMusic();
 }
 function colorSkip(){
   const C=S.color;if(!C.spare.length)return;
@@ -1466,6 +1467,8 @@ function startMusic(){
   const out=ac.createGain();out.gain.value=1;out.connect(ac.destination);musicGain=out;
   let step=0,t=ac.currentTime+0.05;
   const tick=()=>{
+    if(ac.state!=="running"){try{ac.resume()}catch(e){}}
+    if(t<ac.currentTime)t=ac.currentTime+0.05;
     while(t<ac.currentTime+0.35){
       const m=MEL[step%32];if(m)note(ac,m,t,0.17,"square",0.09,out);
       if(step%2===0)note(ac,BASS[Math.floor((step%32)/8)]+(step%4===2?7:0),t,0.3,"triangle",0.2,out);
