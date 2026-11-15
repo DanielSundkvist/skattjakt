@@ -946,8 +946,8 @@ function paintColor(){
   hush();
   const C=S.color,h=HUES[C.list[C.i]],k=(C.i+C.offset)%Math.max(1,S.kids),name=kidName(k);
   const tr=$("fTrail");tr.textContent="";
-  for(let j=0;j<C.total;j++){const sp=document.createElement("span");sp.className=j<C.i?"done":j===C.i?"now":"";tr.append(sp)}
-  $("fTurn").hidden=C.race||S.kids<2;$("fName").textContent=name;$("fTurn").dataset.kid=String(k);
+  for(let j=0;j<C.total;j++){const sp=document.createElement("span");sp.className=(j<C.i||C.phase==="tidy")?"done":j===C.i?"now":"";tr.append(sp)}
+  $("fTurn").hidden=C.race||S.kids<2||C.phase==="tidy";$("fName").textContent=name;$("fTurn").dataset.kid=String(k);
   const show=C.phase==="show",sw=$("fSwatch"),who=$("fWho");
   sw.hidden=!show;$("fStars").hidden=show;$("fSkip").hidden=!show;$("fListen").hidden=!canSpeak;
   $("fTimer").hidden=!(show&&C.time);who.hidden=!(show&&C.race);$("fMain").hidden=show&&C.race;who.textContent="";
@@ -970,7 +970,10 @@ function paintColor(){
     if(C.time&&!colorTick)startColorTimer();
   }else{
     stopColorTimer();
-    if(C.phase==="late"){
+    if(C.phase==="tidy"){
+      $("fStars").textContent="🧺";$("fTitle").textContent="Dags att städa!";
+      $("fText").textContent="Bär tillbaka alla saker dit ni hittade dem. Tryck när allt är på plats.";
+    }else if(C.phase==="late"){
       $("fStars").textContent="⏰";$("fTitle").textContent="Tiden tog slut!";
       $("fText").textContent=C.race?"Ingen hann den här gången.":"Bra försök. Nästa gång går det!";
     }else if(C.race){
@@ -979,8 +982,9 @@ function paintColor(){
     }else{
       $("fStars").textContent="⭐⭐⭐";$("fTitle").textContent="Bra hittat!";$("fText").textContent="Runda "+(C.i+1)+" av "+C.total+" är klar.";
     }
-    if(C.i>=C.total-1)lab($("fMain"),"🎉","Klart!");else lab($("fMain"),"➡️","Nästa");
-    speech=$("fTitle").textContent;
+    if(C.phase==="tidy")lab($("fMain"),"✅","Allt är tillbaka");
+    else if(C.i>=C.total-1)lab($("fMain"),"🧺","Städa");else lab($("fMain"),"➡️","Nästa");
+    speech=C.phase==="tidy"?"Bra jobbat! Nu bär ni tillbaka alla saker till sin plats.":$("fTitle").textContent;
   }
   S.colorSpeech=speech;say(speech);
 }
@@ -992,10 +996,9 @@ function colorWin(j){
 function colorMain(){
   const C=S.color;
   if(C.phase==="show"){stopColorTimer();C.stars++;C.phase="right";ding()}
-  else{
-    if(C.i>=C.total-1){hush();award("lek");show("win");confetti();hurra();return}
-    C.i++;C.phase="show";
-  }
+  else if(C.phase==="tidy"){hush();award("lek");show("win");confetti();hurra();return}
+  else if(C.i>=C.total-1)C.phase="tidy";  // sista rundan klar: städa innan vinsten
+  else{C.i++;C.phase="show"}
   save();paintColor();window.scrollTo(0,0);
 }
 function colorSkip(){
