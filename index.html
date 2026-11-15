@@ -7,11 +7,11 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Skattjakt">
+<meta name="apple-mobile-web-app-title" content="Familjens lekar">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="icon-192.png">
-<title>Familjens skattjakt</title>
+<title>Familjens lekar</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
 <style>
@@ -85,6 +85,13 @@ select{font:inherit;font-weight:700;padding:12px 14px;border-radius:14px;border:
 .game .gname{font-family:var(--display);font-weight:800;font-size:22px;line-height:1.1}
 .game .gsub{font-size:14px;font-weight:700;opacity:.75;line-height:1.25}
 .kidbtn{min-height:64px;font-size:20px}
+.timer{display:flex;align-items:center;gap:12px}
+.timer .bar{flex:1;height:16px;border-radius:8px;background:#fff;overflow:hidden;box-shadow:inset 0 0 0 2px var(--mist)}
+.timer .fill{height:100%;width:100%;background:var(--coral);transition:width .25s linear}
+.timer .tnum{font-family:var(--display);font-weight:800;font-size:38px;line-height:1;min-width:2ch;text-align:right;font-variant-numeric:tabular-nums}
+#cTime button{flex:1 1 56px;padding:14px 6px}
+.whogrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.whogrid button{min-height:72px;font-size:20px;box-shadow:0 5px 0 rgba(0,0,0,.25);text-transform:uppercase;overflow-wrap:anywhere}
 .opts{display:flex;flex-direction:column;gap:10px}
 .opts button{min-height:68px;font-size:20px;justify-content:flex-start;text-align:left;padding:12px 16px}
 .opts button .ico{font-size:38px}
@@ -277,15 +284,41 @@ canvas#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:non
     </div>
   </section>
 
+  <!-- 3c. Färgjakten: val av spelsätt och tid -->
+  <section class="card" id="csetup" hidden>
+    <h2>Färgjakten</h2>
+    <div class="field">
+      <span class="label">Spelsätt</span>
+      <div class="seg" id="cMode">
+        <button type="button" data-v="turn" aria-pressed="true">Turas om</button>
+        <button type="button" data-v="race" aria-pressed="false">Tävling</button>
+      </div>
+      <span class="hint" id="cModeHint"></span>
+    </div>
+    <div class="field">
+      <span class="label">På tid</span>
+      <div class="seg" id="cTime">
+        <button type="button" data-v="0" aria-pressed="true">Utan tid</button>
+        <button type="button" data-v="20" aria-pressed="false">20 s</button>
+        <button type="button" data-v="30" aria-pressed="false">30 s</button>
+        <button type="button" data-v="45" aria-pressed="false">45 s</button>
+      </div>
+      <span class="hint" id="cTimeHint"></span>
+    </div>
+    <button class="primary" type="button" id="cStart"><span class="ico">▶️</span>Starta färgjakten</button>
+  </section>
+
   <!-- 3c. Färgjakten -->
   <section id="color" hidden style="display:flex;flex-direction:column;gap:16px">
     <div class="trail" id="fTrail" aria-hidden="true"></div>
     <div class="turn pop" id="fTurn"><span class="lbl">Nu hämtar</span><span class="who" id="fName"></span></div>
     <div class="card center" id="fCard">
+      <div class="timer" id="fTimer" hidden><div class="bar"><div class="fill" id="fFill"></div></div><span class="tnum" id="fNum"></span></div>
       <div class="swatch pop" id="fSwatch"></div>
       <div class="stars pop" id="fStars" aria-hidden="true" hidden>⭐⭐⭐</div>
       <h2 id="fTitle"></h2>
       <p class="label" id="fText"></p>
+      <div class="whogrid" id="fWho" hidden></div>
       <button type="button" class="kidbtn" id="fListen"><span class="ico">🔊</span>Lyssna</button>
       <button class="primary" type="button" id="fMain"></button>
       <button type="button" class="kidbtn" id="fSkip"><span class="ico">🔁</span>Byt</button>
@@ -438,7 +471,7 @@ const MISSIONS={
  jul:[["🎵","Sjung en julsång som ni kan."],["🍪","Gå som en pepparkaksgubbe med stela ben."],["🎅","Säg ho ho ho med din mörkaste röst."],["🦌","Hoppa som en ren tio gånger."],["🤫","Smyg tyst som en tomtenisse i tio steg."],["🔴","Hitta något som är rött som tomtens luva."],["🎁","Låtsas att ni slår in en jättestor klapp."],["❄️","Snurra som en snöflinga i tre varv."],["🤗","Ge varandra en julkram."],["⭐","Sträck er så högt ni kan, som stjärnan i granen."]]
 };
 const T={
- vanlig:{title:"Familjens skattjakt",story:"",last:"Här ligger skatten! Leta noga.",foundBtn:"Vi hittade skatten!",icon:"🏆",win:"Ni hittade skatten!",winText:"Bra jobbat, skattjägare. Nu är skatten er.",noteWord:"djuret",ask:"Hittade ni lappen? Vilket djur är det?",hide:"Göm skatten här"},
+ vanlig:{title:"Skattjakt",story:"",last:"Här ligger skatten! Leta noga.",foundBtn:"Vi hittade skatten!",icon:"🏆",win:"Ni hittade skatten!",winText:"Bra jobbat, skattjägare. Nu är skatten er.",noteWord:"djuret",ask:"Hittade ni lappen? Vilket djur är det?",hide:"Göm skatten här"},
  jul:{title:"Tomtens skattjakt",story:"Åh nej, tomten har tappat sin säck! Följ ledtrådarna och hjälp nissarna att hitta den.",last:"Här ligger tomtens säck! Leta noga.",foundBtn:"Vi hittade säcken!",icon:"🎁",win:"Ni hittade tomtens säck!",winText:"Bra jobbat, tomtenissar. God jul!",noteWord:"bilden",ask:"Hittade ni lappen? Vilken bild är det?",hide:"Göm tomtens säck här"}
 };
 const BADGES={
@@ -558,7 +591,7 @@ const ANIMALS=[["🦊","räv"],["🐻","björn"],["🐰","kanin"],["🦉","uggla
 const $=id=>document.getElementById(id);
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const KEY="skattjakt-v1";
-let S={screen:"home",game:"hunt",readAuto:false,char:null,color:null,dance:null,quiz:null,qtheme:"jul",qlevel:1,qseen:{},theme:"vanlig",place:"inne",count:6,notes:true,missions:true,kids:2,equal:true,per:3,sound:true,names:["","","",""],voice:"",stops:[],i:0,phase:"clue",chest:{},last:null,lastNew:true,back:"setup",offset:0,nextStart:0,seen:{}};
+let S={screen:"home",game:"hunt",readAuto:false,char:null,color:null,dance:null,quiz:null,cmode:"turn",ctime:0,qtheme:"jul",qlevel:1,qseen:{},theme:"vanlig",place:"inne",count:6,notes:true,missions:true,kids:2,equal:true,per:3,sound:true,names:["","","",""],voice:"",stops:[],i:0,phase:"clue",chest:{},last:null,lastNew:true,back:"setup",offset:0,nextStart:0,seen:{}};
 const th=()=>T[S.theme]||T.vanlig;
 const syms=()=>S.theme==="jul"?JULSYM:ANIMALS;
 const allPlaces=()=>PLACES[S.place].concat(S.theme==="jul"?JUL[S.place]:[]);
@@ -688,7 +721,7 @@ function hurra(){
 }
 function paintSetup(){
   document.body.classList.toggle("jul",S.theme==="jul");
-  $("title").textContent=th().title;
+  if(S.screen==="setup")$("title").textContent=th().title;
   $("themeColor").setAttribute("content",S.theme==="jul"?"#8E1F2F":"#0E4D5C");
   $("notesHint").textContent=S.notes
     ?(S.theme==="jul"?"Du gömmer en lapp med en julbild på varje plats. Barnen trycker på rätt bild för att få nästa ledtråd.":"Du gömmer en lapp med ett djur på varje plats. Barnen trycker på rätt djur för att få nästa ledtråd.")
@@ -878,34 +911,87 @@ function charSkip(){
   save();paintChar();
 }
 /* ---------- Färgjakten ---------- */
+const KIDCOL=["#FFC83D","#8EE3C8","#FFB3C7","#9CD3FF"];
+let colorTick=null,colorEnd=0;
+const cRace=()=>S.cmode==="race"&&S.kids>1;
+function paintColorSetup(){
+  $("cMode").hidden=S.kids<2;
+  $("cModeHint").textContent=S.kids<2?"Tävling går att välja när minst två barn är med.":cRace()?"Alla letar samtidigt. Den som hittar först får en poäng.":"Barnen turas om att hämta, ett barn i taget.";
+  $("cTimeHint").textContent=S.ctime?"Varje runda är "+S.ctime+" sekunder. En klocka räknar ner på skärmen.":"Ingen klocka. Barnen får leta i lugn och ro.";
+}
 function startColor(){
-  const total=Math.ceil(6/S.kids)*S.kids,order=shuffle(HUES.map((_,k)=>k));
-  S.color={list:order.slice(0,total),spare:order.slice(total),i:0,phase:"show",total,offset:(S.nextStart||0)%Math.max(1,S.kids)};
-  S.nextStart=S.color.offset+1;S.game="color";show("color");
+  const race=cRace(),total=race?7:Math.ceil(6/S.kids)*S.kids,order=shuffle(HUES.map((_,k)=>k));
+  S.color={list:order.slice(0,total),spare:order.slice(total),i:0,phase:"show",total,race,time:S.ctime||0,stars:0,score:[0,0,0,0],winner:-1,offset:(S.nextStart||0)%Math.max(1,S.kids)};
+  if(!race)S.nextStart=S.color.offset+1;
+  S.game="color";show("color");
+}
+function stopColorTimer(){if(colorTick){clearInterval(colorTick);colorTick=null}}
+function startColorTimer(){
+  stopColorTimer();const C=S.color;if(!C||!C.time||C.phase!=="show")return;
+  colorEnd=Date.now()+C.time*1000;let lastBeep=99;
+  const tick=()=>{
+    const left=Math.max(0,Math.ceil((colorEnd-Date.now())/1000));
+    $("fNum").textContent=String(left);$("fFill").style.width=Math.max(0,(colorEnd-Date.now())/(C.time*10))+"%";
+    if(left<=3&&left>0&&left<lastBeep){lastBeep=left;const ac=audio();if(ac)note(ac,76,ac.currentTime+0.01,0.1,"square",0.12)}
+    if(left<=0)colorTimeout();
+  };
+  tick();colorTick=setInterval(tick,250);
+}
+function colorTimeout(){
+  stopColorTimer();const C=S.color;if(!C||C.phase!=="show")return;
+  const ac=audio();if(ac)note(ac,43,ac.currentTime+0.02,0.4,"square",0.15);
+  C.phase="late";save();paintColor();window.scrollTo(0,0);
 }
 function paintColor(){
   hush();
   const C=S.color,h=HUES[C.list[C.i]],k=(C.i+C.offset)%Math.max(1,S.kids),name=kidName(k);
   const tr=$("fTrail");tr.textContent="";
   for(let j=0;j<C.total;j++){const sp=document.createElement("span");sp.className=j<C.i?"done":j===C.i?"now":"";tr.append(sp)}
-  $("fTurn").hidden=S.kids<2;$("fName").textContent=name;$("fTurn").dataset.kid=String(k);
-  const show=C.phase==="show",sw=$("fSwatch");
+  $("fTurn").hidden=C.race||S.kids<2;$("fName").textContent=name;$("fTurn").dataset.kid=String(k);
+  const show=C.phase==="show",sw=$("fSwatch"),who=$("fWho");
   sw.hidden=!show;$("fStars").hidden=show;$("fSkip").hidden=!show;$("fListen").hidden=!canSpeak;
+  $("fTimer").hidden=!(show&&C.time);who.hidden=!(show&&C.race);$("fMain").hidden=show&&C.race;who.textContent="";
   let speech;
   if(show){
     sw.style.background=h[1];sw.style.borderRadius=h[2]?"50%":h[0]==="fyrkantigt"?"0":"28px";
-    $("fTitle").textContent="Något "+h[0];$("fText").textContent="Spring och hämta något som är "+h[0]+"!";
-    lab($("fMain"),"🏃","Hittat!");speech=(S.kids>1?name+", din tur! ":"")+"Hämta något som är "+h[0]+"!";
+    $("fTitle").textContent="Något "+h[0];
+    if(C.race){
+      $("fText").textContent="Vem hittar först något som är "+h[0]+"? Tryck på den som var först.";
+      for(let j=0;j<S.kids;j++){
+        const b=document.createElement("button");b.type="button";b.style.background=KIDCOL[j];lab(b,"🏁",kidName(j));
+        b.addEventListener("click",()=>colorWin(j));who.append(b);
+      }
+      speech="Vem hittar först något som är "+h[0]+"?";
+    }else{
+      $("fText").textContent="Spring och hämta något som är "+h[0]+"!";
+      lab($("fMain"),"🏃","Hittat!");speech=(S.kids>1?name+", din tur! ":"")+"Hämta något som är "+h[0]+"!";
+    }
+    if(C.time)speech+=" Ni har "+C.time+" sekunder.";
+    if(C.time&&!colorTick)startColorTimer();
   }else{
-    $("fTitle").textContent="Bra hittat!";$("fText").textContent="Runda "+(C.i+1)+" av "+C.total+" är klar.";
+    stopColorTimer();
+    if(C.phase==="late"){
+      $("fStars").textContent="⏰";$("fTitle").textContent="Tiden tog slut!";
+      $("fText").textContent=C.race?"Ingen hann den här gången.":"Bra försök. Nästa gång går det!";
+    }else if(C.race){
+      $("fStars").textContent="🏁";$("fTitle").textContent=kidName(C.winner)+" var först!";
+      $("fText").textContent=scoreLine();
+    }else{
+      $("fStars").textContent="⭐⭐⭐";$("fTitle").textContent="Bra hittat!";$("fText").textContent="Runda "+(C.i+1)+" av "+C.total+" är klar.";
+    }
     if(C.i>=C.total-1)lab($("fMain"),"🎉","Klart!");else lab($("fMain"),"➡️","Nästa");
-    speech="Bra hittat!";
+    speech=$("fTitle").textContent;
   }
   S.colorSpeech=speech;say(speech);
 }
+function scoreLine(){const C=S.color;return Array.from({length:S.kids},(_,j)=>kidName(j)+" "+C.score[j]).join(", ")+"."}
+function colorWin(j){
+  const C=S.color;if(C.phase!=="show")return;
+  stopColorTimer();C.score[j]++;C.winner=j;C.phase="right";ding();save();paintColor();window.scrollTo(0,0);
+}
 function colorMain(){
   const C=S.color;
-  if(C.phase==="show"){C.phase="right";ding()}
+  if(C.phase==="show"){stopColorTimer();C.stars++;C.phase="right";ding()}
   else{
     if(C.i>=C.total-1){hush();award("lek");show("win");confetti();hurra();return}
     C.i++;C.phase="show";
@@ -914,7 +1000,17 @@ function colorMain(){
 }
 function colorSkip(){
   const C=S.color;if(!C.spare.length)return;
+  stopColorTimer();
   const old=C.list[C.i];C.list[C.i]=C.spare.shift();C.spare.push(old);save();paintColor();
+}
+function colorWinText(){
+  const C=S.color;
+  if(C.race){
+    const top=Math.max(...C.score.slice(0,S.kids)),ws=[];for(let j=0;j<S.kids;j++)if(C.score[j]===top)ws.push(kidName(j));
+    return["🏁",top===0?"Ingen fick poäng":ws.length===1?ws[0]+" vann!":"Oavgjort!","Poäng: "+scoreLine()];
+  }
+  if(C.time)return["🌈","Ni klarade färgjakten!","Ni hann "+C.stars+" av "+C.total+" i tid."];
+  return WIN.color;
 }
 /* ---------- Frågesport ---------- */
 const plain=t=>t.replace(/^[^\p{L}\d]+/u,"");
@@ -1056,19 +1152,21 @@ function next(){
 function show(name){
   S.screen=name;
   if(name!=="dance")clearDance();
-  ["home","setup","prep","hunt","char","color","dance","qsetup","quiz","win","chest"].forEach(id=>$(id).hidden=id!==name);
+  if(name!=="color")stopColorTimer();
+  ["home","setup","prep","hunt","char","csetup","color","dance","qsetup","quiz","win","chest"].forEach(id=>$(id).hidden=id!==name);
   $("restart").hidden=name==="home"||name==="chest";
   $("openChest").hidden=["hunt","char","color","dance","quiz","chest"].includes(name);
   if(name==="char")paintChar();
   if(name==="color")paintColor();
+  if(name==="csetup")paintColorSetup();
   if(name==="qsetup")paintQuizSetup();
   if(name==="quiz")paintQuiz();
   if(name==="dance"){if(S.dance.phase!=="ready"&&!danceTimer){S.dance.phase="ready"}paintDance()}
-  $("title").textContent=name==="home"?"Familjens lekar":name==="char"?"Djurcharader":name==="color"?"Färgjakten":name==="dance"?"Stopdans":(name==="quiz"||name==="qsetup")?"Frågesport":name==="chest"?"Skattkistan":th().title;
+  $("title").textContent=({home:"Familjens lekar",char:"Djurcharader",csetup:"Färgjakten",color:"Färgjakten",dance:"Stopdans",qsetup:"Frågesport",quiz:"Frågesport",chest:"Skattkistan"})[name]||((name==="win"&&S.game!=="hunt")?"Familjens lekar":th().title);
   if(name==="chest")paintChest();
   if(name==="prep")paintPrep();
   if(name==="hunt")paintHunt();
-  if(name==="win"){paintBadge();$("replay").hidden=!S.sound;const w=WIN[S.game];
+  if(name==="win"){paintBadge();$("replay").hidden=!S.sound;const w=S.game==="color"&&S.color?colorWinText():WIN[S.game];
     $("winIcon").textContent=w?w[0]:th().icon;$("winTitle").textContent=w?w[1]:th().win;$("winText").textContent=w?w[2]:th().winText;
     if(S.game==="quiz"&&S.quiz){$("winIcon").textContent="🏅";$("winTitle").textContent="Bra jobbat!";$("winText").textContent="Ni fick "+S.quiz.stars+" av "+S.quiz.total+" stjärnor. En stjärna betyder rätt svar på första försöket."}}
   save();window.scrollTo(0,0);
@@ -1096,7 +1194,10 @@ function paintAuto(){$("autoHint").textContent=!canSpeak?"Den här telefonen ell
 paintAuto();
 $("goHunt").addEventListener("click",()=>{S.game="hunt";show("setup")});
 $("goChar").addEventListener("click",()=>{audio();startChar()});
-$("goColor").addEventListener("click",()=>{audio();startColor()});
+$("goColor").addEventListener("click",()=>show("csetup"));
+seg("cMode",()=>S.cmode,v=>{S.cmode=v;paintColorSetup()});
+seg("cTime",()=>S.ctime,v=>{S.ctime=+v;paintColorSetup()});
+$("cStart").addEventListener("click",()=>{audio();startColor()});
 $("goDance").addEventListener("click",startDance);
 $("goQuiz").addEventListener("click",()=>show("qsetup"));
 seg("qLevel",()=>S.qlevel,v=>{S.qlevel=+v;paintQuizSetup()});
@@ -1118,7 +1219,7 @@ $("speakClue").hidden=$("speakMission").hidden=!canSpeak;
 paintVoices();
 if(canSpeak){try{speechSynthesis.addEventListener("voiceschanged",paintVoices)}catch(e){}}
 $("voice").addEventListener("change",e=>{S.voice=e.target.value;save()});
-$("voiceTest").addEventListener("click",()=>speak("Hej! Nu börjar skattjakten. Är ni redo?"));
+$("voiceTest").addEventListener("click",()=>speak("Hej! Nu börjar leken. Är ni redo?"));
 $("speakClue").addEventListener("click",()=>speak(clueSpeech(S.stops[S.i],S.i===S.stops.length-1)));
 $("speakMission").addEventListener("click",()=>speak("Uppdrag! "+$("missionText").textContent));
 $("openChest").addEventListener("click",openChest);
@@ -1136,7 +1237,7 @@ $("again").addEventListener("click",()=>show("home"));
 $("restart").addEventListener("click",()=>{hush();show("home")});
 paintSetup();
 (function(){
-  const sc=S.screen,ok=["home","setup","prep","hunt","char","color","dance","win","chest"].concat(["qsetup","quiz"]).includes(sc)
+  const sc=S.screen,ok=["home","setup","prep","hunt","char","color","dance","win","chest"].concat(["qsetup","quiz","csetup"]).includes(sc)
     &&!(sc==="quiz"&&!S.quiz)&&!((sc==="prep"||sc==="hunt")&&!S.stops.length)&&!(sc==="char"&&!S.char)&&!(sc==="color"&&!S.color)&&!(sc==="dance"&&!S.dance);
   show(ok?sc:"home");
 })();

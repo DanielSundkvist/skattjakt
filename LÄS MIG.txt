@@ -1,4 +1,4 @@
-Familjens skattjakt som webapp
+Familjens lekar som webapp
 
 Mappen innehåller allt som behövs. Den måste ligga på en webbadress som börjar med https
 för att kunna installeras på telefonen.

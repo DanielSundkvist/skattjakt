@@ -1,7 +1,7 @@
 {
- "name": "Familjens skattjakt",
- "short_name": "Skattjakt",
- "description": "Skattjakt med ledtrådar, uppdrag och jultema för hela familjen.",
+ "name": "Familjens lekar",
+ "short_name": "Familjens lekar",
+ "description": "Skattjakt, djurcharader, färgjakt, stopdans och frågesport för hela familjen.",
  "lang": "sv",
  "start_url": ".",
  "scope": ".",
