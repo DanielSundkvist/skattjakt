@@ -25,7 +25,8 @@
 }
 body.jul{--sea:#8E1F2F; --deep:#560F1A; --glow:#B5343F; --sand:#FFF8EC; --coral:#1F7A4D; --mist:#EAD9C8; --ink:#3A1218}
 *{box-sizing:border-box}
-html,body{height:100%;margin:0}
+html{height:100%;margin:0}
+body{min-height:100%;margin:0}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent;background:var(--sea);color:var(--ink);font-family:var(--body);font-size:18px;line-height:1.45;
   background-image:radial-gradient(circle at 20% 0%,var(--glow) 0,transparent 55%),radial-gradient(circle at 90% 100%,var(--deep) 0,transparent 60%)}
@@ -40,7 +41,7 @@ p{margin:0}
 .hint{font-size:15px;opacity:.75}
 .seg{display:flex;gap:8px;flex-wrap:wrap}
 .seg button{flex:1 1 80px}
-button{touch-action:manipulation;-webkit-user-select:none;user-select:none;font:inherit;font-weight:800;border:0;border-radius:16px;padding:14px 16px;cursor:pointer;color:var(--ink);background:#fff;box-shadow:inset 0 0 0 2px var(--mist);min-height:52px}
+button{display:inline-flex;align-items:center;justify-content:center;gap:8px;text-align:center;touch-action:manipulation;-webkit-user-select:none;user-select:none;font:inherit;font-weight:800;border:0;border-radius:16px;padding:14px 16px;cursor:pointer;color:var(--ink);background:#fff;box-shadow:inset 0 0 0 2px var(--mist);min-height:52px}
 button[aria-pressed="true"]{background:var(--sea);color:var(--sand);box-shadow:none}
 button.primary{background:var(--sun);box-shadow:0 5px 0 var(--shade);font-family:var(--display);font-size:22px}
 button.primary:active{transform:translateY(3px);box-shadow:0 2px 0 #d99a00}
@@ -77,6 +78,14 @@ select{font:inherit;font-weight:700;padding:12px 14px;border-radius:14px;border:
 .animals.places button small{font-size:15px;font-weight:800}
 .card.final{outline:5px solid var(--sun);outline-offset:-5px}
 .card.final #clueNo{font-family:var(--display);font-size:24px;line-height:1.15;color:var(--coral);text-transform:uppercase}
+.ico{font-size:1.5em;line-height:1}
+.games{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.game{flex-direction:column;gap:2px;padding:16px 10px;min-height:150px}
+.game .ico{font-size:64px}
+.game .gname{font-family:var(--display);font-weight:800;font-size:22px;line-height:1.1}
+.game .gsub{font-size:14px;font-weight:700;opacity:.75;line-height:1.25}
+.kidbtn{min-height:64px;font-size:20px}
+#kids button{flex:1 1 48px}
 .stars{font-size:54px;line-height:1;letter-spacing:6px}
 .animals button.wrong{animation:shake .4s;background:#ffd9d3}
 .msg{font-weight:800;color:var(--coral);min-height:1.45em}
@@ -101,15 +110,57 @@ canvas#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:non
 <body>
 <main>
   <header>
-    <h1 id="title">Familjens skattjakt</h1>
+    <h1 id="title">Familjens lekar</h1>
     <div class="tools">
       <button class="quiet" id="openChest" type="button">Skattkistan</button>
-      <button class="quiet" id="restart" type="button" hidden>Börja om</button>
+      <button class="quiet" id="restart" type="button" hidden>Hem</button>
     </div>
   </header>
 
+  <!-- 0. Hem: välj lek och vilka som är med -->
+  <section class="card" id="home">
+    <h2>Vad vill ni leka?</h2>
+    <div class="games">
+      <button type="button" class="game" id="goHunt"><span class="ico">🗺️</span><span class="gname">Skattjakt</span><span class="gsub">Följ ledtrådar till skatten</span></button>
+      <button type="button" class="game" id="goChar"><span class="ico">🐒</span><span class="gname">Djurcharader</span><span class="gsub">Härma ett djur, de andra gissar</span></button>
+    </div>
+    <div class="field">
+      <span class="label">Hur många barn är med?</span>
+      <div class="seg" id="kids">
+        <button type="button" data-v="1" aria-pressed="false">1</button>
+        <button type="button" data-v="2" aria-pressed="true">2</button>
+        <button type="button" data-v="3" aria-pressed="false">3</button>
+        <button type="button" data-v="4" aria-pressed="false">4</button>
+      </div>
+      <div class="row" id="names"></div>
+      <span class="hint" id="kidsHint"></span>
+    </div>
+    <div class="field">
+      <span class="label">Uppläsning för barn som inte läser</span>
+      <div class="seg" id="auto">
+        <button type="button" data-v="1" aria-pressed="true">Läs upp automatiskt</button>
+        <button type="button" data-v="0" aria-pressed="false">Bara på knapp</button>
+      </div>
+      <span class="hint" id="autoHint"></span>
+    </div>
+    <div class="field" id="voiceField" hidden>
+      <label class="label" for="voice">Röst för uppläsning</label>
+      <select id="voice"></select>
+      <button type="button" id="voiceTest">Provlyssna</button>
+      <span class="hint">Rösterna kommer från telefonen. De som heter Premium eller Förbättrad låter mest naturliga och kan laddas ner i telefonens inställningar.</span>
+    </div>
+    <div class="field">
+      <span class="label">Ljud</span>
+      <div class="seg" id="sound">
+        <button type="button" data-v="1" aria-pressed="true">Med ljud</button>
+        <button type="button" data-v="0" aria-pressed="false">Utan ljud</button>
+      </div>
+      <span class="hint">Pling vid rätt svar och en hurrasång när ni vinner. På iPhone måste ljudlöst läge vara avstängt.</span>
+    </div>
+  </section>
+
   <!-- 1. Inställningar (för den vuxna) -->
-  <section class="card" id="setup">
+  <section class="card" id="setup" hidden>
     <h2>Gör en ny skattjakt</h2>
     <div class="field">
       <span class="label">Vilket tema?</span>
@@ -124,17 +175,6 @@ canvas#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:non
         <button type="button" data-v="inne" aria-pressed="true">Inne</button>
         <button type="button" data-v="ute" aria-pressed="false">Ute</button>
       </div>
-    </div>
-    <div class="field">
-      <span class="label">Hur många barn är med?</span>
-      <div class="seg" id="kids">
-        <button type="button" data-v="1" aria-pressed="false">1</button>
-        <button type="button" data-v="2" aria-pressed="true">2</button>
-        <button type="button" data-v="3" aria-pressed="false">3</button>
-        <button type="button" data-v="4" aria-pressed="false">4</button>
-      </div>
-      <div class="row" id="names"></div>
-      <span class="hint" id="kidsHint"></span>
     </div>
     <div class="field">
       <span class="label">Hur många ledtrådar?</span>
@@ -161,20 +201,6 @@ canvas#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:non
       </div>
       <span class="hint">Vid varannan plats får barnen en liten uppgift, som att hoppa eller sjunga, innan nästa ledtråd.</span>
     </div>
-    <div class="field" id="voiceField" hidden>
-      <label class="label" for="voice">Röst för uppläsning</label>
-      <select id="voice"></select>
-      <button type="button" id="voiceTest">Provlyssna</button>
-      <span class="hint">Rösterna kommer från telefonen. De som heter Premium eller Förbättrad låter mest naturliga och kan laddas ner i telefonens inställningar.</span>
-    </div>
-    <div class="field">
-      <span class="label">Ljud</span>
-      <div class="seg" id="sound">
-        <button type="button" data-v="1" aria-pressed="true">Med ljud</button>
-        <button type="button" data-v="0" aria-pressed="false">Utan ljud</button>
-      </div>
-      <span class="hint">En hurrasång spelas när skatten är hittad. På iPhone måste ljudlöst läge vara avstängt.</span>
-    </div>
     <button class="primary" type="button" id="make">Skapa skattjakten</button>
   </section>
 
@@ -196,8 +222,8 @@ canvas#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:non
       <div class="big pop" id="missionIcon"></div>
       <p class="label">Uppdrag innan nästa ledtråd</p>
       <p class="mission" id="missionText"></p>
-      <button type="button" id="speakMission">Läs upp uppdraget</button>
-      <button class="primary" type="button" id="missionDone">Klart!</button>
+      <button type="button" class="kidbtn" id="speakMission"><span class="ico">🔊</span>Lyssna igen</button>
+      <button class="primary" type="button" id="missionDone"><span class="ico">✅</span>Klart!</button>
     </div>
     <div class="card center" id="doneCard" hidden>
       <div class="stars pop" aria-hidden="true">⭐⭐⭐</div>
@@ -209,14 +235,28 @@ canvas#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:non
       <p class="label" id="clueNo"></p>
       <p class="riddle" id="riddle"></p>
       <div class="pic pop" id="pic" hidden></div>
-      <button type="button" id="speakClue">Läs upp gåtan</button>
-      <button type="button" id="showPic">Visa bildledtråd</button>
+      <button type="button" class="kidbtn" id="speakClue"><span class="ico">🔊</span>Lyssna igen</button>
+      <button type="button" class="kidbtn" id="showPic"><span class="ico">🖼️</span>Visa bild</button>
     </div>
     <div class="card" id="answerCard">
       <p class="label" id="question"></p>
       <div class="animals" id="animals"></div>
       <p class="msg" id="msg" role="status"></p>
       <button class="primary" type="button" id="found"></button>
+    </div>
+  </section>
+
+  <!-- 3b. Djurcharader -->
+  <section id="char" hidden style="display:flex;flex-direction:column;gap:16px">
+    <div class="trail" id="cTrail" aria-hidden="true"></div>
+    <div class="turn pop" id="cTurn"><span class="lbl">Nu härmar</span><span class="who" id="cName"></span></div>
+    <div class="card center" id="cCard">
+      <div class="pic pop" id="cPic"></div>
+      <h2 id="cTitle"></h2>
+      <p class="label" id="cText"></p>
+      <button type="button" class="kidbtn" id="cListen"><span class="ico">🔊</span>Lyssna igen</button>
+      <button class="primary" type="button" id="cMain"></button>
+      <button type="button" class="kidbtn" id="cSkip"><span class="ico">🔁</span>Byt djur</button>
     </div>
   </section>
 
@@ -232,7 +272,7 @@ canvas#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:non
     </div>
     <button type="button" id="winChest">Öppna skattkistan</button>
     <button type="button" id="replay">Spela hurrasången igen</button>
-    <button class="primary" type="button" id="again">Gör en ny skattjakt</button>
+    <button class="primary" type="button" id="again"><span class="ico">🔁</span>Lek igen</button>
   </section>
   <!-- 5. Skattkistan med märken -->
   <section class="card" id="chest" hidden>
@@ -323,12 +363,15 @@ const BADGES={
  vanlig:[["🧭","Kompassen"],["🗝️","Nyckeln"],["💎","Diamanten"],["👑","Kronan"],["🦜","Papegojan"],["⚓","Ankaret"],["🔭","Kikaren"],["🗺️","Kartan"],["🪙","Guldmyntet"],["🏝️","Skattön"],["🐙","Bläckfisken"],["⛵","Skeppet"]],
  jul:[["🎅","Tomteluvan"],["🦌","Renen"],["⭐","Julstjärnan"],["🎄","Granen"],["🔔","Bjällran"],["🍪","Pepparkakan"],["⛄","Snögubben"],["🕯️","Ljuset"],["🎁","Klappen"],["❄️","Snöflingan"],["🧦","Julstrumpan"],["🛷","Släden"]]
 };
-const ALLBADGES=BADGES.vanlig.concat(BADGES.jul);
+BADGES.lek=[["🐒","Apan"],["🐘","Elefanten"],["🐧","Pingvinen"],["🦘","Kängurun"],["🦒","Giraffen"],["🦋","Fjärilen"]];
+const ALLBADGES=BADGES.vanlig.concat(BADGES.jul,BADGES.lek);
+/* Djurcharader: [bild, namn, namn med en/ett] */
+const CHARADES=[["🐘","Elefant","en elefant"],["🐒","Apa","en apa"],["🐸","Groda","en groda"],["🐍","Orm","en orm"],["🐧","Pingvin","en pingvin"],["🦘","Känguru","en känguru"],["🐱","Katt","en katt"],["🐶","Hund","en hund"],["🐔","Höna","en höna"],["🐴","Häst","en häst"],["🐰","Kanin","en kanin"],["🦁","Lejon","ett lejon"],["🐟","Fisk","en fisk"],["🦆","Anka","en anka"],["🐻","Björn","en björn"],["🦋","Fjäril","en fjäril"],["🐄","Ko","en ko"],["🐷","Gris","en gris"],["🦀","Krabba","en krabba"],["🐭","Mus","en mus"],["🦉","Uggla","en uggla"],["🐝","Bi","ett bi"],["🐢","Sköldpadda","en sköldpadda"],["🦒","Giraff","en giraff"]];
 const ANIMALS=[["🦊","räv"],["🐻","björn"],["🐰","kanin"],["🦉","uggla"],["🐸","groda"],["🐱","katt"],["🐶","hund"],["🐷","gris"],["🦁","lejon"],["🐢","sköldpadda"]];
 const $=id=>document.getElementById(id);
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const KEY="skattjakt-v1";
-let S={screen:"setup",theme:"vanlig",place:"inne",count:6,notes:true,missions:true,kids:2,equal:true,per:3,sound:true,names:["","","",""],voice:"",stops:[],i:0,phase:"clue",chest:{},last:null,lastNew:true,back:"setup",offset:0,nextStart:0,seen:{}};
+let S={screen:"home",game:"hunt",autoRead:true,char:null,theme:"vanlig",place:"inne",count:6,notes:true,missions:true,kids:2,equal:true,per:3,sound:true,names:["","","",""],voice:"",stops:[],i:0,phase:"clue",chest:{},last:null,lastNew:true,back:"setup",offset:0,nextStart:0,seen:{}};
 const th=()=>T[S.theme]||T.vanlig;
 const syms=()=>S.theme==="jul"?JULSYM:ANIMALS;
 const allPlaces=()=>PLACES[S.place].concat(S.theme==="jul"?JUL[S.place]:[]);
@@ -394,10 +437,13 @@ function speak(text){
     speechSynthesis.speak(u);
   }catch(e){}
 }
+function say(text){if(S.autoRead!==false)speak(text)}
+/* Knapptext med en stor bild framför, så att barn som inte läser hittar rätt. */
+function lab(btn,ico,text){btn.textContent="";const i=document.createElement("span");i.className="ico";i.textContent=ico;btn.append(i,text)}
 function hush(){if(canSpeak){try{speechSynthesis.cancel()}catch(e){}}}
 /* Skattkistan: ett nytt märke för varje avklarad jakt, sparat på den här telefonen. */
-function award(){
-  const list=BADGES[S.theme]||BADGES.vanlig;
+function award(kind){
+  const list=kind==="lek"?BADGES.lek:(BADGES[S.theme]||BADGES.vanlig);
   const fresh=list.find(b=>!S.chest[b[0]]);
   const b=fresh||list[Math.floor(Math.random()*list.length)];
   S.chest[b[0]]=(S.chest[b[0]]||0)+1;S.last=b[0];S.lastNew=!!fresh;
@@ -409,7 +455,7 @@ function paintBadge(){
 }
 function paintChest(){
   const own=ALLBADGES.filter(b=>S.chest[b[0]]).length;
-  $("chestCount").textContent=own?"Ni har samlat "+own+" av "+ALLBADGES.length+" märken. Varje avklarad skattjakt ger ett nytt.":"Kistan är tom än så länge. Varje avklarad skattjakt ger ett märke.";
+  $("chestCount").textContent=own?"Ni har samlat "+own+" av "+ALLBADGES.length+" märken. Varje avklarad lek ger ett nytt.":"Kistan är tom än så länge. Varje avklarad lek ger ett märke.";
   const box=$("badges");box.textContent="";
   ALLBADGES.forEach(b=>{
     const n=S.chest[b[0]]||0,d=document.createElement("div"),e=document.createElement("span"),t=document.createElement("span");
@@ -426,7 +472,7 @@ function paintNames(){
     inp.addEventListener("input",e=>{S.names[k]=e.target.value;save()});
     box.append(inp);
   }
-  $("kidsHint").textContent=S.kids>1?"Barnen turas om att leda vägen, och varje barn får en egen färg. Namnen är frivilliga.":"Namnet är frivilligt.";
+  $("kidsHint").textContent=S.kids>1?"Barnen turas om i lekarna, och varje barn får en egen färg. Namnen är frivilliga.":"Namnet är frivilligt.";
 }
 /* Ljud: allt skapas med Web Audio, så appen behöver inga ljudfiler. */
 let AC=null;
@@ -537,10 +583,11 @@ function paintHunt(){
     const left=n-1-S.i;
     $("doneTitle").textContent=S.notes?"Rätt lapp!":"Rätt plats!";
     $("doneText").textContent="Ledtråd "+(S.i+1)+" av "+n+" är klar. "+(left===1?"Nu är det bara skatten kvar!":left+" ledtrådar kvar till skatten.");
-    $("doneBtn").textContent=s.mission?"Till uppdraget":left===1?"Sista ledtråden":"Nästa ledtråd";
+    if(s.mission)lab($("doneBtn"),"🤸","Till uppdraget");else if(left===1)lab($("doneBtn"),"🎁","Sista ledtråden");else lab($("doneBtn"),"➡️","Nästa ledtråd");
+    say($("doneTitle").textContent+" "+$("doneText").textContent);
     return;
   }
-  if(onMission){$("missionIcon").textContent=s.mission[0];$("missionText").textContent=S.kids<2?s.mission[1].replace("Ge varandra en","Ge en vuxen en"):s.mission[1];return}
+  if(onMission){$("missionIcon").textContent=s.mission[0];$("missionText").textContent=S.kids<2?s.mission[1].replace("Ge varandra en","Ge en vuxen en"):s.mission[1];say("Uppdrag! "+$("missionText").textContent);return}
   $("clueNo").textContent=last?"Sista ledtråden: nu letar ni efter skatten!":"Ledtråd "+(S.i+1)+" av "+n;
   $("clueCard").classList.toggle("final",last);$("answerCard").classList.toggle("final",last);
   $("riddle").textContent=clueText(s,last);
@@ -549,7 +596,7 @@ function paintHunt(){
   const grid=$("animals"),found=$("found");grid.textContent="";grid.classList.toggle("places",!last&&!S.notes);
   if(last){
     $("question").textContent=th().last;
-    grid.hidden=true;found.hidden=false;found.textContent=th().foundBtn;
+    grid.hidden=true;found.hidden=false;lab(found,"🎁",th().foundBtn);
   }else if(S.notes){
     $("question").textContent=th().ask;
     grid.hidden=false;found.hidden=true;
@@ -558,13 +605,13 @@ function paintHunt(){
       const b=document.createElement("button");b.type="button";b.textContent=a[0];b.setAttribute("aria-label",a[1]);
       b.addEventListener("click",()=>{
         if(a[0]===s.animal[0]){ding();foundStop()}
-        else{b.classList.remove("wrong");void b.offsetWidth;b.classList.add("wrong");$("msg").textContent="Inte "+a[1]+". Titta på lappen igen!"}
+        else{b.classList.remove("wrong");void b.offsetWidth;b.classList.add("wrong");$("msg").textContent="Inte "+a[1]+". Titta på lappen igen!";say($("msg").textContent)}
       });
       grid.append(b);
     });
   }else if(!S.arrived){
     $("question").textContent="Lista ut vilken plats gåtan menar och spring dit. Tryck på knappen när ni står där.";
-    grid.hidden=true;found.hidden=false;found.textContent="Vi är framme!";
+    grid.hidden=true;found.hidden=false;lab(found,"🏃","Vi är framme!");
   }else{
     $("question").textContent="Vilken plats står ni vid? Tryck på rätt bild.";
     grid.hidden=false;found.hidden=true;
@@ -574,11 +621,74 @@ function paintHunt(){
       b.append(p.pic);sm.textContent=p.name;b.append(sm);
       b.addEventListener("click",()=>{
         if(p.name===s.name){ding();foundStop()}
-        else{b.classList.remove("wrong");void b.offsetWidth;b.classList.add("wrong");$("msg").textContent="Inte "+p.name.toLowerCase()+". Lyssna på gåtan en gång till!"}
+        else{b.classList.remove("wrong");void b.offsetWidth;b.classList.add("wrong");$("msg").textContent="Inte "+p.name.toLowerCase()+". Lyssna på gåtan en gång till!";say($("msg").textContent)}
       });
       grid.append(b);
     });
   }
+  // Läs upp det som just visades: frågan om platsen, eller hela ledtråden.
+  if(!last&&!S.notes&&S.arrived)say($("question").textContent);
+  else say(clueSpeech(s,last));
+}
+function clueSpeech(s,last){
+  const parts=[];
+  if(th().story&&S.i===0)parts.push(th().story);
+  if(leader())parts.push(leader()+" leder vägen.");
+  if(last)parts.push("Sista ledtråden! Nu letar ni efter skatten.");
+  parts.push(clueText(s,last));
+  return parts.join(" ");
+}
+/* ---------- Djurcharader ---------- */
+function startChar(){
+  const total=Math.ceil(6/S.kids)*S.kids;
+  const order=shuffle(CHARADES.map((_,k)=>k));
+  S.char={list:order.slice(0,total),spare:order.slice(total),i:0,phase:"pass",total,offset:(S.nextStart||0)%Math.max(1,S.kids)};
+  S.nextStart=S.char.offset+1;S.game="char";
+  show("char");
+}
+function paintChar(){
+  hush();
+  const C=S.char,a=CHARADES[C.list[C.i]],k=(C.i+C.offset)%Math.max(1,S.kids),name=kidName(k);
+  const tr=$("cTrail");tr.textContent="";
+  for(let j=0;j<C.total;j++){const sp=document.createElement("span");sp.className=j<C.i?"done":j===C.i?"now":"";tr.append(sp)}
+  $("cTurn").hidden=S.kids<2;$("cName").textContent=name;$("cTurn").dataset.kid=String(k);
+  const pic=$("cPic"),title=$("cTitle"),text=$("cText"),main=$("cMain");
+  $("cSkip").hidden=!(C.phase==="show"||C.phase==="act");
+  $("cListen").hidden=!canSpeak||C.phase==="show";
+  let speech="";
+  if(C.phase==="pass"){
+    pic.textContent="🙈";title.textContent=S.kids>1?"Ge telefonen till "+name:"Din tur!";
+    text.textContent="Alla andra blundar. Tryck när bara du ser skärmen.";
+    lab(main,"👀","Visa djuret");speech=(S.kids>1?name+", din tur! ":"Din tur! ")+"Ta telefonen. Alla andra blundar.";
+  }else if(C.phase==="show"){
+    pic.textContent=a[0];title.textContent=a[1];text.textContent="Kom ihåg djuret, men säg det inte högt.";
+    lab(main,"🙈","Göm djuret");
+  }else if(C.phase==="act"){
+    pic.textContent="🎭";title.textContent="Härma djuret!";text.textContent="Använd kroppen och låt som djuret. De andra gissar.";
+    lab(main,"✅","De gissade rätt!");speech="Nu får alla titta! Vilket djur är det?";
+  }else{
+    pic.textContent=a[0];title.textContent="Rätt! Det var "+a[2]+".";
+    text.textContent=(C.i+1)+" av "+C.total+" djur är klara.";
+    if(C.i>=C.total-1)lab(main,"🎉","Klart!");else lab(main,"⭐","Nästa djur");
+    speech=title.textContent;
+  }
+  S.charSpeech=speech;if(speech)say(speech);
+}
+function charMain(){
+  const C=S.char;
+  if(C.phase==="pass")C.phase="show";
+  else if(C.phase==="show")C.phase="act";
+  else if(C.phase==="act"){C.phase="right";ding()}
+  else{
+    if(C.i>=C.total-1){hush();award("lek");show("win");confetti();hurra();return}
+    C.i++;C.phase="pass";
+  }
+  save();paintChar();window.scrollTo(0,0);
+}
+function charSkip(){
+  const C=S.char;if(!C.spare.length)C.spare=shuffle(CHARADES.map((_,k)=>k).filter(k=>!C.list.includes(k)));
+  const old=C.list[C.i];C.list[C.i]=C.spare.shift();C.spare.push(old);C.phase="pass";
+  save();paintChar();
 }
 /* En ledtråd är löst: visa stjärnor, sedan uppdrag om platsen har ett, sedan nästa ledtråd. */
 function foundStop(){
@@ -595,20 +705,23 @@ function pressFound(){
 }
 function next(){
   S.phase="clue";S.arrived=false;
-  if(S.i>=S.stops.length-1){hush();award();show("win");confetti();hurra();return}
+  if(S.i>=S.stops.length-1){hush();S.game="hunt";award("hunt");show("win");confetti();hurra();return}
   S.i++;save();paintHunt();
   $("clueCard").classList.remove("pop");void $("clueCard").offsetWidth;$("clueCard").classList.add("pop");
   window.scrollTo(0,0);
 }
 function show(name){
   S.screen=name;
-  ["setup","prep","hunt","win","chest"].forEach(id=>$(id).hidden=id!==name);
-  $("restart").hidden=name==="setup"||name==="chest";
-  $("openChest").hidden=name==="hunt"||name==="chest";
+  ["home","setup","prep","hunt","char","win","chest"].forEach(id=>$(id).hidden=id!==name);
+  $("restart").hidden=name==="home"||name==="chest";
+  $("openChest").hidden=name==="hunt"||name==="char"||name==="chest";
+  if(name==="char")paintChar();
+  $("title").textContent=name==="home"?"Familjens lekar":name==="char"?"Djurcharader":name==="chest"?"Skattkistan":th().title;
   if(name==="chest")paintChest();
   if(name==="prep")paintPrep();
   if(name==="hunt")paintHunt();
-  if(name==="win"){paintBadge();$("replay").hidden=!S.sound;$("winIcon").textContent=th().icon;$("winTitle").textContent=th().win;$("winText").textContent=th().winText}
+  if(name==="win"){paintBadge();$("replay").hidden=!S.sound;const c=S.game==="char";
+    $("winIcon").textContent=c?"🎉":th().icon;$("winTitle").textContent=c?"Ni klarade alla djuren!":th().win;$("winText").textContent=c?"Bra härmat, allihop.":th().winText}
   save();window.scrollTo(0,0);
 }
 function confetti(){
@@ -629,6 +742,14 @@ seg("mode",()=>S.equal?1:0,v=>{S.equal=v==="1";paintCount()});
 const p3=seg("notes",()=>S.notes?1:0,v=>S.notes=v==="1");
 while(S.names.length<4)S.names.push("");
 seg("kids",()=>S.kids,v=>{S.kids=+v;paintNames();paintCount()});
+seg("auto",()=>S.autoRead!==false?1:0,v=>{S.autoRead=v==="1";paintAuto()});
+function paintAuto(){$("autoHint").textContent=!canSpeak?"Den här telefonen eller webbläsaren saknar stöd för uppläsning.":S.autoRead!==false?"Gåtor, uppdrag och vems tur det är läses upp direkt när de visas.":"Barnen trycker på högtalaren för att få texten uppläst.";}
+paintAuto();
+$("goHunt").addEventListener("click",()=>{S.game="hunt";show("setup")});
+$("goChar").addEventListener("click",()=>{audio();startChar()});
+$("cMain").addEventListener("click",charMain);
+$("cSkip").addEventListener("click",charSkip);
+$("cListen").addEventListener("click",()=>{if(S.charSpeech)speak(S.charSpeech)});
 seg("sound",()=>S.sound?1:0,v=>{S.sound=v==="1";if(S.sound)ding()});
 paintNames();paintCount();
 $("replay").addEventListener("click",hurra);
@@ -637,11 +758,11 @@ paintVoices();
 if(canSpeak){try{speechSynthesis.addEventListener("voiceschanged",paintVoices)}catch(e){}}
 $("voice").addEventListener("change",e=>{S.voice=e.target.value;save()});
 $("voiceTest").addEventListener("click",()=>speak("Hej! Nu börjar skattjakten. Är ni redo?"));
-$("speakClue").addEventListener("click",()=>speak($("riddle").textContent));
-$("speakMission").addEventListener("click",()=>speak($("missionText").textContent));
+$("speakClue").addEventListener("click",()=>speak(clueSpeech(S.stops[S.i],S.i===S.stops.length-1)));
+$("speakMission").addEventListener("click",()=>speak("Uppdrag! "+$("missionText").textContent));
 $("openChest").addEventListener("click",openChest);
 $("winChest").addEventListener("click",openChest);
-$("chestBack").addEventListener("click",()=>show(S.back&&S.back!=="chest"?S.back:"setup"));
+$("chestBack").addEventListener("click",()=>show(S.back&&S.back!=="chest"?S.back:"home"));
 if(!S.chest||typeof S.chest!=="object")S.chest={};
 $("make").addEventListener("click",()=>{makeHunt();show("prep")});
 $("reshuffle").addEventListener("click",()=>{makeHunt();paintPrep();save()});
@@ -650,10 +771,14 @@ $("showPic").addEventListener("click",()=>{$("pic").hidden=false;$("showPic").hi
 $("found").addEventListener("click",pressFound);
 $("doneBtn").addEventListener("click",afterDone);
 $("missionDone").addEventListener("click",next);
-$("again").addEventListener("click",()=>show("setup"));
-$("restart").addEventListener("click",()=>{hush();show("setup")});
+$("again").addEventListener("click",()=>show("home"));
+$("restart").addEventListener("click",()=>{hush();show("home")});
 paintSetup();
-show(S.stops.length||S.screen==="setup"?S.screen:"setup");
+(function(){
+  const sc=S.screen,ok=["home","setup","prep","hunt","char","win","chest"].includes(sc)
+    &&!((sc==="prep"||sc==="hunt")&&!S.stops.length)&&!(sc==="char"&&!S.char);
+  show(ok?sc:"home");
+})();
 </script>
 </body>
 </html>
